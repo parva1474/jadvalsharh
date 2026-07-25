@@ -1,5 +1,6 @@
 const CHANNEL_USERNAME = "@parvapoem";
 
+// یکسان‌سازی حروف فارسی
 function normalizeText(text) {
   if (!text) return "";
   return text
@@ -9,35 +10,83 @@ function normalizeText(text) {
     .trim();
 }
 
-async function sendMessage(token, chatId, text) {
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  const res = await fetch(url, {
+// دیتای نمونه جدول
+const SAMPLE_PUZZLE = {
+  id: 1,
+  title: "جدول شرح در متن شماره ۱ (۱۰×۱۵)",
+  questions: {
+    1: { text: "پایتخت ایران", answer: "تهران", length: 5 },
+    2: { text: "بلندترین قله ایران", answer: "دماوند", length: 6 },
+    3: { text: "شاعر گلستان و بوستان", answer: "سعدی", length: 4 }
+  }
+};
+
+// ارسال یا ویرایش پیام با کیبورد شیشه‌ای
+async function sendOrEditMessage(token, chatId, messageId, text, replyMarkup) {
+  const method = messageId ? "editMessageText" : "sendMessage";
+  const url = `https://api.telegram.org/bot${token}/${method}`;
+  
+  const body = {
+    chat_id: chatId,
+    text: text,
+    parse_mode: "Markdown",
+    reply_markup: replyMarkup
+  };
+  if (messageId) body.message_id = messageId;
+
+  await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: "Markdown" }),
+    body: JSON.stringify(body)
   });
-  const data = await res.json();
-  if (!data.ok) {
-    console.log("❌ Error in sendMessage:", JSON.stringify(data));
-  }
 }
 
-async function checkChannelMembership(token, userId) {
-  try {
-    const url = `https://api.telegram.org/bot${token}/getChatMember?chat_id=${CHANNEL_USERNAME}&user_id=${userId}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    
-    if (data.ok && data.result) {
-      return ["creator", "administrator", "member"].includes(data.result.status);
-    }
-    console.log("⚠️ Channel check failed (Is bot admin in channel?):", JSON.stringify(data));
-    return false;
-  } catch (e) {
-    console.log("⚠️ Channel check exception:", e.message);
-    return false;
-  }
+// کیبورد حروف فارسی شیشه‌ای
+function getAlphabetKeyboard(qId, currentInput = "") {
+  const letters = [
+    ["ا", "ب", "پ", "ت", "ث", "ج"],
+    ["چ", "ح", "خ", "د", "ذ", "ر"],
+    ["ز", "ژ", "س", "ش", "ص", "ض"],
+    ["ط", "ظ", "ع", "غ", "ف", "ق"],
+    ["ک", "گ", "ل", "م", "ن", "و"],
+    ["هـ", "ی"]
+  ];
+
+  const inlineKeyboard = letters.map(row => 
+    row.map(char => ({
+      text: char,
+      callback_data: `type_${qId}_${char}`
+    }))
+  );
+
+  // دکمه‌های کنترل (پاک کردن، ثبت، بازگشت)
+  inlineKeyboard.push([
+    { text: "⌫ پاک کردن", callback_data: `del_${qId}` },
+    { text: "✅ ثبت پاسخ", callback_data: `submit_${qId}` }
+  ]);
+  inlineKeyboard.push([
+    { text: "🔙 بازگشت به جدول", callback_data: "main_menu" }
+  ]);
+
+  return { inline_keyboard: inlineKeyboard };
 }
+
+// کیبورد انتخاب خانه‌های جدول
+function getGridQuestionsKeyboard() {
+  const keyboard = [
+    [
+      { text: "🏠 خانه ۱ (۵ حرفی)", callback_data: "select_q_1" },
+      { text: "🏠 خانه ۲ (۶ حرفی)", callback_data: "select_q_2" }
+    ],
+    [
+      { text: "🏠 خانه ۳ (۴ حرفی)", callback_data: "select_q_3" }
+    ]
+  ];
+  return { inline_keyboard: keyboard };
+}
+
+// حافظه موقت ساده برای ذخیره حروف تایپ شده کاربران
+const userSessions = {};
 
 export default {
   async fetch(request, env) {
@@ -46,79 +95,142 @@ export default {
         const update = await request.json();
         const token = env.BOT_TOKEN;
 
-        if (!token) {
-          console.log("❌ ERROR: BOT_TOKEN variable is missing in Cloudflare!");
-          return new Response("OK", { status: 200 });
-        }
-
+        // ۱. پردازش دستورات متنی (/start)
         if (update.message && update.message.text) {
           const chatId = update.message.chat.id;
           const text = update.message.text.trim();
-          const userId = update.message.from.id;
 
-          // ۱. بررسی عضویت در کانال
-          const isMember = await checkChannelMembership(token, userId);
-          if (!isMember) {
-            await sendMessage(
-              token, 
-              chatId, 
-              `⚠️ **برای شروع بازی، ابتدا باید عضو کانال زیر شوید:**\n\n📢 ${CHANNEL_USERNAME}\n\nپس از عضویت، مجدداً /start را بفرستید.`
-            );
-            return new Response("OK", { status: 200 });
+          if (text === "/start" || text === "/جدول") {
+            const gridView = 
+              `🧩 **${SAMPLE_PUZZLE.title}**\n\n` +
+              `\`\`\`\n` +
+              `+----+----+----+----+----+----+\n` +
+              `| 1⬇ | ⬛ | 2⬇ | ⬛ | 3⬇ | ⬛ |\n` +
+              `|شرح1|    |شرح2|    |شرح3|    |\n` +
+              `+----+----+----+----+----+----+\n` +
+              `\`\`\`\n\n` +
+              `👇 **برای پاسخ‌دهی، روی خانه مورد نظر کلیک کنید:**`;
+
+            await sendOrEditMessage(token, chatId, null, gridView, getGridQuestionsKeyboard());
+          }
+        }
+
+        // ۲. پردازش کلیک روی دکمه‌های شیشه‌ای (Callback Queries)
+        if (update.callback_query) {
+          const query = update.callback_query;
+          const chatId = query.message.chat.id;
+          const messageId = query.message.message_id;
+          const data = query.data;
+          const userId = query.from.id;
+
+          if (!userSessions[userId]) userSessions[userId] = {};
+
+          // بازگشت به منوی اصلی
+          if (data === "main_menu") {
+            const gridView = 
+              `🧩 **${SAMPLE_PUZZLE.title}**\n\n` +
+              `👇 **یک خانه را برای تایپ پاسخ انتخاب کنید:**`;
+            await sendOrEditMessage(token, chatId, messageId, gridView, getGridQuestionsKeyboard());
           }
 
-          // ۲. دستورات ربات جدول شرح در متن
-          if (text === "/start" || text === "/جدول" || text === "/newgame") {
-            const gridText = 
-              "🧩 **جدول شرح در متن شماره ۱ (۱۰×۱۵)**\n\n" +
-              "👇 *با نگه داشتن دست روی کادر زیر، سوالات بزرگنمایی می‌شوند:*\n\n" +
-              "```\n" +
-              "+----+----+----+----+----+----+----+----+----+----+\n" +
-              "| 1⬇ | ⬛ | 2⬇ | ⬛ | 3⬇ | ⬛ | 4⬇ | ⬛ | 5⬇ | ⬛ |\n" +
-              "|شرح1|    |شرح2|    |شرح3|    |شرح4|    |شرح5|    |\n" +
-              "+----+----+----+----+----+----+----+----+----+----+\n" +
-              "| 6➡ |    |    |    | 7➡ |    |    |    |    |    |\n" +
-              "|شرح6|    |    |    |شرح7|    |    |    |    |    |\n" +
-              "+----+----+----+----+----+----+----+----+----+----+\n" +
-              "| 8⬇ | ⬛ | 9⬇ | ⬛ |10⬇ | ⬛ |11⬇ | ⬛ |12⬇ | ⬛ |\n" +
-              "|شرح8|    |شرح9|    |شرح10   |شرح11   |شرح12   |\n" +
-              "+----+----+----+----+----+----+----+----+----+----+\n" +
-              "```\n\n" +
-              "📋 **راهنمای شرح خانه ها:**\n" +
-              "• **خانه ۱ (⬇):** پایتخت ایران (۵ حرفی)\n" +
-              "• **خانه ۲ (⬇):** بلندترین قله ایران (۶ حرفی)\n" +
-              "• **خانه ۶ (➡):** شاعر بوستان و گلستان (۴ حرفی)\n\n" +
-              "💡 **نحوه پاسخ:** شماره خانه و جواب را بفرستید.\nمثال: `1 تهران`";
+          // انتخاب سوال
+          else if (data.startsWith("select_q_")) {
+            const qId = parseInt(data.replace("select_q_", ""));
+            const qData = SAMPLE_PUZZLE.questions[qId];
+            userSessions[userId][qId] = ""; // بازنشانی ورودی
 
-            await sendMessage(token, chatId, gridText);
-          } else {
-            const parts = text.split(" ");
-            if (parts.length >= 2) {
-              const qId = parseInt(parts[0]);
-              const userAnswer = normalizeText(parts.slice(1).join(" "));
+            const emptyBoxes = " [  ] ".repeat(qData.length);
+            const text = 
+              `📝 **سوال خانه ${qId}:** ${qData.text} (${qData.length} حرفی)\n\n` +
+              `📌 **پاسخ شما:**\n\`${emptyBoxes}\`\n\n` +
+              `👇 *با کلیک روی حروف زیر، خانه‌ها را پر کنید:*`;
 
-              const answers = {
-                1: normalizeText("تهران"),
-                2: normalizeText("دماوند"),
-                6: normalizeText("سعدی")
-              };
+            await sendOrEditMessage(token, chatId, messageId, text, getAlphabetKeyboard(qId));
+          }
 
-              if (answers[qId]) {
-                if (answers[qId] === userAnswer) {
-                  await sendMessage(token, chatId, `✅ **آفرین!** خانه شماره ${qId} درست حل شد.`);
-                } else {
-                  await sendMessage(token, chatId, `❌ پاسخ خانه شماره ${qId} اشتباه است.`);
-                }
-              } else {
-                await sendMessage(token, chatId, "⚠️ شماره خانه پیدا نشد. برای مشاهده جدول /جدول را بزنید.");
-              }
+          // تایپ حرف
+          else if (data.startsWith("type_")) {
+            const [, qIdStr, char] = data.split("_");
+            const qId = parseInt(qIdStr);
+            const qData = SAMPLE_PUZZLE.questions[qId];
+
+            let current = userSessions[userId][qId] || "";
+            if (current.length < qData.length) {
+              current += char;
+              userSessions[userId][qId] = current;
+            }
+
+            // ساخت نمایش مربعی خانه‌ها
+            let boxesDisplay = "";
+            for (let i = 0; i < qData.length; i++) {
+              boxesDisplay += current[i] ? ` [ ${current[i]} ] ` : " [  ] ";
+            }
+
+            const text = 
+              `📝 **سوال خانه ${qId}:** ${qData.text} (${qData.length} حرفی)\n\n` +
+              `📌 **پاسخ شما:**\n\`${boxesDisplay}\`\n\n` +
+              `👇 *حرف بعدی را انتخاب کنید یا ثبت را بزنید:*`;
+
+            await sendOrEditMessage(token, chatId, messageId, text, getAlphabetKeyboard(qId));
+          }
+
+          // پاک کردن آخرین حرف
+          else if (data.startsWith("del_")) {
+            const qId = parseInt(data.replace("del_", ""));
+            const qData = SAMPLE_PUZZLE.questions[qId];
+
+            let current = userSessions[userId][qId] || "";
+            if (current.length > 0) {
+              current = current.slice(0, -1);
+              userSessions[userId][qId] = current;
+            }
+
+            let boxesDisplay = "";
+            for (let i = 0; i < qData.length; i++) {
+              boxesDisplay += current[i] ? ` [ ${current[i]} ] ` : " [  ] ";
+            }
+
+            const text = 
+              `📝 **سوال خانه ${qId}:** ${qData.text} (${qData.length} حرفی)\n\n` +
+              `📌 **پاسخ شما:**\n\`${boxesDisplay}\`\n\n` +
+              `👇 *حرف بعدی را انتخاب کنید یا ثبت را بزنید:*`;
+
+            await sendOrEditMessage(token, chatId, messageId, text, getAlphabetKeyboard(qId));
+          }
+
+          // ثبت پاسخ
+          else if (data.startsWith("submit_")) {
+            const qId = parseInt(data.replace("submit_", ""));
+            const qData = SAMPLE_PUZZLE.questions[qId];
+            const userAns = normalizeText(userSessions[userId][qId] || "");
+            const correctAns = normalizeText(qData.answer);
+
+            if (userAns === correctAns) {
+              const successText = 
+                `🎉 **آفرین! پاسخ خانه ${qId} درست بود!**\n\n` +
+                `✅ **جواب:** ${qData.answer}\n\n` +
+                `برای ادامه بازی روی دکمه زیر کلیک کنید:`;
+              
+              await sendOrEditMessage(token, chatId, messageId, successText, {
+                inline_keyboard: [[{ text: "🔙 بازگشت به جدول", callback_data: "main_menu" }]]
+              });
             } else {
-              await sendMessage(token, chatId, "💡 برای حل خانه، شماره خانه و جواب را بفرستید.\nمثال: `1 تهران`\n\nدیدن جدول: /جدول");
+              const failText = 
+                `❌ **پاسخ اشتباه بود!**\n\n` +
+                `پاسخ وارد شده: \`${userSessions[userId][qId]}\`\n` +
+                `دوباره امتحان کنید یا خانه دیگری را انتخاب کنید.`;
+
+              await sendOrEditMessage(token, chatId, messageId, failText, {
+                inline_keyboard: [
+                  [{ text: "🔄 تلاش مجدد", callback_data: `select_q_${qId}` }],
+                  [{ text: "🔙 بازگشت به جدول", callback_data: "main_menu" }]
+                ]
+              });
             }
           }
         }
       } catch (err) {
-        console.log("❌ General Worker Error:", err.message);
+        console.log("Error:", err.message);
       }
       return new Response("OK", { status: 200 });
     }
