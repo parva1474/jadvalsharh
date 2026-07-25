@@ -1,29 +1,55 @@
-2026-07-25T16:52:02.101Z	Initializing build environment...
-2026-07-25T16:52:02.101Z	Initializing build environment...
-2026-07-25T16:52:03.905Z	Success: Finished initializing build environment
-2026-07-25T16:52:04.407Z	Cloning repository...
-2026-07-25T16:52:05.325Z	No build output detected to cache. Skipping.
-2026-07-25T16:52:05.325Z	No dependencies detected to cache. Skipping.
-2026-07-25T16:52:05.328Z	Detected the following tools from environment: bun@1.2.15, nodejs@22.16.0
-2026-07-25T16:52:05.330Z	Installing project dependencies: bun install
-2026-07-25T16:52:05.682Z	bun install v1.2.15 (df017990)
-2026-07-25T16:52:05.690Z	
-2026-07-25T16:52:05.690Z	[41.00ms] done
-2026-07-25T16:52:05.691Z	No packages! Deleted empty lockfile
-2026-07-25T16:52:05.850Z	Executing user deploy command: npx wrangler deploy
-2026-07-25T16:52:07.885Z	npm warn exec The following package was not found and will be installed: wrangler@4.114.0
-2026-07-25T16:52:16.737Z	
-2026-07-25T16:52:16.737Z	 ⛅️ wrangler 4.114.0
-2026-07-25T16:52:16.737Z	────────────────────
-2026-07-25T16:52:16.791Z	
-2026-07-25T16:52:16.791Z	Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
-2026-07-25T16:52:16.792Z	
-2026-07-25T16:52:16.866Z	✘ [ERROR] The entry-point file at "src/index.js" was not found.
-2026-07-25T16:52:16.866Z	
-2026-07-25T16:52:16.866Z	  
-2026-07-25T16:52:16.866Z	  This might mean that your entry-point file needs to be generated (which is the general case when a framework is being used).
-2026-07-25T16:52:16.866Z	  If that's the case please run your project's build command and try again.
-2026-07-25T16:52:16.866Z	
-2026-07-25T16:52:16.866Z	
-2026-07-25T16:52:17.027Z	🪵  Logs were written to "/opt/buildhome/.config/.wrangler/logs/wrangler-2026-07-25_16-52-16_270.log"
-2026-07-25T16:52:17.184Z	Failed: error occurred while running deploy command
+const CHANNEL_USERNAME = "@parvapoem";
+
+async function sendMessage(token, chatId, text, parseMode = "Markdown") {
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: parseMode }),
+  });
+}
+
+async function checkChannelMembership(token, userId) {
+  try {
+    const url = `https://api.telegram.org/bot${token}/getChatMember?chat_id=${CHANNEL_USERNAME}&user_id=${userId}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.ok) {
+      return ["creator", "administrator", "member"].includes(data.result.status);
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function handleUpdate(update, env) {
+  const token = env.BOT_TOKEN;
+  if (!token || !update.message || !update.message.text) return;
+
+  const chatId = update.message.chat.id;
+  const text = update.message.text.trim();
+  const userId = update.message.from.id;
+
+  if (text === "/start" || text === "/جدول" || text.startsWith("/newgame")) {
+    const isMember = await checkChannelMembership(token, userId);
+    if (!isMember) {
+      await sendMessage(token, chatId, `⚠️ برای استفاده از ربات ابتدا باید عضو کانال شوید:\n\n📢 ${CHANNEL_USERNAME}`);
+      return;
+    }
+    await sendMessage(token, chatId, "🎮 *جدول جدید شروع شد!* \nبرای حدس کلمات، کلمه مورد نظر خود را بفرستید.");
+  }
+}
+
+export default {
+  async fetch(request, env) {
+    if (request.method === "POST") {
+      try {
+        const update = await request.json();
+        await handleUpdate(update, env);
+      } catch (e) {}
+      return new Response("OK", { status: 200 });
+    }
+    return new Response("Bot is running!", { status: 200 });
+  },
+};
