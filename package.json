@@ -1,0 +1,9 @@
+{
+  "name": "telegram-crossword-bot",
+  "version": "1.0.0",
+  "description": "Crossword bot for Telegram Groups running on Cloudflare Workers",
+  "main": "src/index.js",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  }
+}
