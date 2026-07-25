@@ -65,8 +65,9 @@ function generateUniquePuzzle(puzzleIndex) {
 // ==========================================
 async function checkChannelMembership(token, userId) {
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/getChatMember?chat_id=${@parvapoem}&user_id=${userId}`);
-    const data = await res.json();
+    const CHANNEL_USERNAME = "@parvapoem";
+`https://api.telegram.org/bot${token}/getChatMember?chat_id=${CHANNEL_USERNAME}&user_id=${userId}`
+
     if (data.ok) {
       const status = data.result.status;
       return ["creator", "administrator", "member"].includes(status);
