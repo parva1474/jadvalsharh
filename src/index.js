@@ -1,6 +1,5 @@
 const CHANNEL_USERNAME = "@parvapoem";
 
-// تابع یکسان‌سازی حروف (آ، أ، إ، ٱ، اعراب) -> همگی به "ا" تبدیل می‌شوند
 function normalizeText(text) {
   if (!text) return "";
   return text
@@ -10,22 +9,32 @@ function normalizeText(text) {
     .trim();
 }
 
-async function sendMessage(token, chatId, text, parseMode = "Markdown") {
-  const url = `[https://api.telegram.org/bot$](https://api.telegram.org/bot$){token}/sendMessage`;
-  await fetch(url, {
+async function sendMessage(token, chatId, text) {
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: parseMode }),
+    body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: "Markdown" }),
   });
+  const data = await res.json();
+  if (!data.ok) {
+    console.log("❌ Error in sendMessage:", JSON.stringify(data));
+  }
 }
 
 async function checkChannelMembership(token, userId) {
   try {
-    const url = `[https://api.telegram.org/bot$](https://api.telegram.org/bot$){token}/getChatMember?chat_id=${CHANNEL_USERNAME}&user_id=${userId}`;
+    const url = `https://api.telegram.org/bot${token}/getChatMember?chat_id=${CHANNEL_USERNAME}&user_id=${userId}`;
     const res = await fetch(url);
     const data = await res.json();
-    return data.ok && ["creator", "administrator", "member"].includes(data.result?.status);
+    
+    if (data.ok && data.result) {
+      return ["creator", "administrator", "member"].includes(data.result.status);
+    }
+    console.log("⚠️ Channel check failed (Is bot admin in channel?):", JSON.stringify(data));
+    return false;
   } catch (e) {
+    console.log("⚠️ Channel check exception:", e.message);
     return false;
   }
 }
@@ -37,12 +46,17 @@ export default {
         const update = await request.json();
         const token = env.BOT_TOKEN;
 
+        if (!token) {
+          console.log("❌ ERROR: BOT_TOKEN variable is missing in Cloudflare!");
+          return new Response("OK", { status: 200 });
+        }
+
         if (update.message && update.message.text) {
           const chatId = update.message.chat.id;
           const text = update.message.text.trim();
           const userId = update.message.from.id;
 
-          // ۱. شرط عضویت در کانال
+          // ۱. بررسی عضویت در کانال
           const isMember = await checkChannelMembership(token, userId);
           if (!isMember) {
             await sendMessage(
@@ -53,7 +67,7 @@ export default {
             return new Response("OK", { status: 200 });
           }
 
-          // ۲. دستورات ربات
+          // ۲. دستورات ربات جدول شرح در متن
           if (text === "/start" || text === "/جدول" || text === "/newgame") {
             const gridText = 
               "🧩 **جدول شرح در متن شماره ۱ (۱۰×۱۵)**\n\n" +
@@ -78,13 +92,11 @@ export default {
 
             await sendMessage(token, chatId, gridText);
           } else {
-            // بررسی پاسخ‌ها
             const parts = text.split(" ");
             if (parts.length >= 2) {
               const qId = parseInt(parts[0]);
               const userAnswer = normalizeText(parts.slice(1).join(" "));
 
-              // جواب‌های نمونه برای تست
               const answers = {
                 1: normalizeText("تهران"),
                 2: normalizeText("دماوند"),
@@ -105,7 +117,9 @@ export default {
             }
           }
         }
-      } catch (err) {}
+      } catch (err) {
+        console.log("❌ General Worker Error:", err.message);
+      }
       return new Response("OK", { status: 200 });
     }
     return new Response("Bot is running!", { status: 200 });
