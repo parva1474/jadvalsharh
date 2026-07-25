@@ -53,4 +53,3 @@ export default {
     return new Response("Bot is running!", { status: 200 });
   },
 };
-
