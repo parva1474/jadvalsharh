@@ -1,0 +1,12 @@
+{
+  "id": "puzzle_009",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "پزشک و دانشمند بزرگ ایرانی و صاحب کتاب قانون", "answer": "ابن‌سینا", "row": 2, "col": 0 },
+    { "id": 2, "direction": "down", "question": "کاشف الکل و دانشمند نامدار ایرانی", "answer": "رازی", "row": 2, "col": 3 },
+    { "id": 3, "direction": "right", "question": "منجم و ریاضی‌دان ایرانی سازنده زیج ایلخانی", "answer": "طوسی", "row": 5, "col": 2 },
+    { "id": 4, "direction": "down", "question": "شخصیت حماسی و قهرمان شاهنامه", "answer": "رستم", "row": 5, "col": 5 },
+    { "id": 5, "direction": "right", "question": "برادر رستم در شاهنامه", "answer": "زواره", "row": 8, "col": 1 }
+  ]
+}
