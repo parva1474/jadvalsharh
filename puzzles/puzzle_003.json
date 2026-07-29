@@ -1,0 +1,12 @@
+{
+  "id": "puzzle_003",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "بنیان‌گذار سلسله هخامنشیان", "answer": "کوروش", "row": 2, "col": 1 },
+    { "id": 2, "direction": "down", "question": "پایتخت تشریفاتی هخامنشیان", "answer": "تخت‌جمشید", "row": 2, "col": 1 },
+    { "id": 3, "direction": "right", "question": "فرمانروای نامدار ساسانی", "answer": "انوشیروان", "row": 5, "col": 0 },
+    { "id": 4, "direction": "down", "question": "معبد تاریخی در استان خوزستان", "answer": "زیگورات", "row": 5, "col": 6 },
+    { "id": 5, "direction": "right", "question": "پادشاه معروف صفوی", "answer": "عباس", "row": 8, "col": 3 }
+  ]
+}
