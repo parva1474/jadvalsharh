@@ -1,7 +1,13 @@
-name = "jadvalsharh"
-main = "src/index.js"
+name = "pjadvalbot"
+main = "worker.js"
 compatibility_date = "2024-01-01"
 
-[[kv_namespaces]]
-binding = "PUZZLE_KV"
-id = "a32d6393d01843609aaf16193470dd7f"
+# تعریف پایگاه داده KV برای ذخیره‌سازی وضعیت ربات، جدول‌ها و امتیازات
+kv_namespaces = [
+  { binding = "jadval", id = "t" }
+]
+
+# متغیرهای محیطی که باید از طریق Wrangler یا پنل Cloudflare مقداردهی شوند
+[vars]
+TELEGRAM_BOT_TOKEN = "8595424524:AAFDug-9837ATptKgJr85PwVBfIp_oKJ2ho"
+ADMIN_USER_ID = "a32d6393d01843609aaf16193470dd7f"
