@@ -1,0 +1,12 @@
+{
+  "id": "puzzle_006",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "پرافتخارترین رشته المپیکی ایران", "answer": "کشتی", "row": 0, "col": 1 },
+    { "id": 2, "direction": "down", "question": "ورزش ملی و باستانی ایران", "answer": "زورخانه‌ای", "row": 0, "col": 1 },
+    { "id": 3, "direction": "right", "question": "تعداد بازیکنان یک تیم فوتبال", "answer": "یازده", "row": 3, "col": 0 },
+    { "id": 4, "direction": "down", "question": "ورزش مضرب و توپ روی میز", "answer": "پینگ‌پنگ", "row": 3, "col": 5 },
+    { "id": 5, "direction": "right", "question": "دویدن آرام برای سلامت قلب", "answer": "پیاده‌روی", "row": 7, "col": 2 }
+  ]
+}
