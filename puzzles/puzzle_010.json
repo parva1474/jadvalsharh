@@ -1,0 +1,12 @@
+{
+  "id": "puzzle_010",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "شبکه جهانی ارتباطات و اطلاعات", "answer": "اینترنت", "row": 1, "col": 1 },
+    { "id": 2, "direction": "down", "question": "مغز متفکر و پردازنده اصلی کامپیوتر", "answer": "پردازنده", "row": 1, "col": 2 },
+    { "id": 3, "direction": "right", "question": "برنامه یا نرم‌افزاری که برای انجام کاری خاص طراحی می‌شود", "answer": "اپلیکیشن", "row": 4, "col": 0 },
+    { "id": 4, "direction": "down", "question": "حافظه موقت رایانه", "answer": "رم", "row": 4, "col": 6 },
+    { "id": 5, "direction": "right", "question": "دانش هوش مصنوعی به اختصار", "answer": "ام‌آی", "row": 8, "col": 2 }
+  ]
+}
