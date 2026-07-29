@@ -1,0 +1,12 @@
+{
+  "id": "puzzle_007",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "بزرگ‌ترین اقیانوس جهان", "answer": "آرام", "row": 1, "col": 2 },
+    { "id": 2, "direction": "down", "question": "طولانی‌ترین رود جهان", "answer": "نیل", "row": 1, "col": 5 },
+    { "id": 3, "direction": "right", "question": "تنگه استراتژیک جنوب ایران", "answer": "هرمز", "row": 4, "col": 1 },
+    { "id": 4, "direction": "down", "question": "بزرگ‌ترین جزیره خلیج فارس", "answer": "قشم", "row": 4, "col": 4 },
+    { "id": 5, "direction": "right", "question": "دریاچه محصور بین ایران و همسایگان شمالی", "answer": "خزر", "row": 8, "col": 0 }
+  ]
+}
