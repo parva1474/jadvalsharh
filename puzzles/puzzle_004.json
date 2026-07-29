@@ -1,0 +1,13 @@
+{
+  "id": "puzzle_004",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "سخت‌ترین ماده طبیعی در زمین", "answer": "الماس", "row": 0, "col": 2 },
+    { "id": 2, "direction": "down", "question": "گاز مورد نیاز برای تنفس انسان", "answer": "اکسیژن", "row": 0, "col": 5 },
+    { "id": 3, "direction": "right", "question": "واحد سنجش جرم در سیستم متریف", "answer": "کیلوگرم", "row": 3, "col": 1 },
+    { "id": 4, "direction": "down", "question": "سیاره سرخ منظومه شمسی", "answer": "مریخ", "row": 3, "col": 1 },
+    { "id": 5, "direction": "right", "question": "مرکز فرماندهی بدن انسان", "answer": "مغز", "row": 6, "col": 0 },
+    { "id": 6, "direction": "down", "question": "نیرویی که اجسام را به سمت زمین می‌کشد", "answer": "جاذبه", "row": 6, "col": 3 }
+  ]
+}
