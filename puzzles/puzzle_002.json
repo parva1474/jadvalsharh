@@ -1,0 +1,13 @@
+{
+  "id": "puzzle_002",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "شاعر بزرگ و سرانجام‌دهنده شاهنامه", "answer": "فردوسی", "row": 1, "col": 1 },
+    { "id": 2, "direction": "down", "question": "لقب حافظ شیرازی", "answer": "لسان‌الغیب", "row": 1, "col": 1 },
+    { "id": 3, "direction": "right", "question": "نویسنده گلستان و بوستان", "answer": "سعدی", "row": 4, "col": 0 },
+    { "id": 4, "direction": "down", "question": "شاعر رباعیات معروف جهان", "answer": "خیام", "row": 4, "col": 3 },
+    { "id": 5, "direction": "right", "question": "کتاب معروف مولانا", "answer": "مثنوی", "row": 7, "col": 2 },
+    { "id": 6, "direction": "down", "question": "پدر شعر نو فارسی", "answer": "نیما", "row": 7, "col": 5 }
+  ]
+}
