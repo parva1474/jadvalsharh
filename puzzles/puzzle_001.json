@@ -1,0 +1,15 @@
+{
+  "id": "puzzle_001",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "پایتخت ایران", "answer": "تهران", "row": 0, "col": 0 },
+    { "id": 2, "direction": "down", "question": "بزرگ‌ترین سیاره منظومه شمسی", "answer": "مشتری", "row": 0, "col": 0 },
+    { "id": 3, "direction": "down", "question": "بلندترین قله ایران", "answer": "دماوند", "row": 0, "col": 4 },
+    { "id": 4, "direction": "right", "question": "مرکز استان فارس", "answer": "شیراز", "row": 3, "col": 1 },
+    { "id": 5, "direction": "down", "question": "نام دیگر دریای خزر", "answer": "کاسپین", "row": 3, "col": 5 },
+    { "id": 6, "direction": "right", "question": "قاره کهن", "answer": "آسیا", "row": 6, "col": 3 },
+    { "id": 7, "direction": "down", "question": "عنصر با علامت شیمیایی O", "answer": "اکسیژن", "row": 6, "col": 7 }
+  ]
+}
+
