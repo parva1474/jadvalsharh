@@ -1,0 +1,12 @@
+{
+  "id": "puzzle_005",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "برنده نخستین اسکار سینمای ایران", "answer": "فرهادی", "row": 1, "col": 0 },
+    { "id": 2, "direction": "down", "question": "فیلم معروف عباس کیارستمی برنده نخل طلا", "answer": "طعم‌گیلاس", "row": 1, "col": 4 },
+    { "id": 3, "direction": "right", "question": "ساز زهی ایرانی با چهار سیم", "answer": "تار", "row": 4, "col": 2 },
+    { "id": 4, "direction": "down", "question": "بازیگر نامدار فیلم گاو", "answer": "انتظامی", "row": 4, "col": 2 },
+    { "id": 5, "direction": "right", "question": "ساز کوبه‌ای سنتی ایران", "answer": "تنبک", "row": 8, "col": 1 }
+  ]
+}
