@@ -1,0 +1,12 @@
+{
+  "id": "puzzle_008",
+  "width": 10,
+  "height": 15,
+  "words": [
+    { "id": 1, "direction": "right", "question": "بزرگ‌ترین پستاندار روی کره زمین", "answer": "وال", "row": 0, "col": 3 },
+    { "id": 2, "direction": "down", "question": "وسیله‌ای برای اندازه گیری دما", "answer": "دماوند", "row": 0, "col": 3 },
+    { "id": 3, "direction": "right", "question": "مایع حیاتی برای ادامه زندگی", "answer": "آب", "row": 3, "col": 2 },
+    { "id": 4, "direction": "down", "question": "میوه بهاری قرمز و ترش‌مزه", "answer": "گوجه‌سبز", "row": 3, "col": 2 },
+    { "id": 5, "direction": "right", "question": "سیاره‌ای که به دور آن حلقه‌های زیبایی وجود دارد", "answer": "زحل", "row": 7, "col": 0 }
+  ]
+}
