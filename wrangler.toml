@@ -4,7 +4,7 @@ compatibility_date = "2024-01-01"
 
 # تعریف پایگاه داده KV برای ذخیره‌سازی وضعیت ربات، جدول‌ها و امتیازات
 kv_namespaces = [
-  { binding = "jadval", id = "t" }
+  { binding = "CROSSWORD_KV", id = "5bdd7b937edb498eab595312cd31a043" }
 ]
 
 # متغیرهای محیطی که باید از طریق Wrangler یا پنل Cloudflare مقداردهی شوند
