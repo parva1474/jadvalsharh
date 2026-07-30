@@ -1,19 +1,6 @@
 /**
  * مدیریت بانک جدول‌ها و ذخیره‌سازی Cloudflare KV
  */
-
-import indexData from "./puzzles/index.json";
-import p001 from "./puzzles/puzzle_001.json";
-import p002 from "./puzzles/puzzle_002.json";
-import p003 from "./puzzles/puzzle_003.json";
-import p004 from "./puzzles/puzzle_004.json";
-import p005 from "./puzzles/puzzle_005.json";
-import p006 from "./puzzles/puzzle_006.json";
-import p007 from "./puzzles/puzzle_007.json";
-import p008 from "./puzzles/puzzle_008.json";
-import p009 from "./puzzles/puzzle_009.json";
-import p010 from "./puzzles/puzzle_010.json";
-
 export class Storage {
   constructor(kv) {
     this.kv = kv;
@@ -24,42 +11,64 @@ export class Storage {
   static KEY_GROUP_STATE = (chatId) => `group_state:${chatId}`;
   static KEY_GROUP_STATS = (chatId) => `group_stats:${chatId}`;
 
+  // لینک بیس فایل‌های ریپازیتوری شما در گیت‌هاب
+  static GITHUB_RAW_BASE = "https://raw.githubusercontent.com/parva1474/jadvalsharh/main/puzzles";
+
   /**
-   * دریافت تمام آیدی‌های جدول
+   * دریافت تمام آیدی‌های جدول از puzzles:index
    */
   async getAllPuzzleIds() {
     let ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
-    if (!ids || !Array.isArray(ids) || ids.length <= 1) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
       ids = await this.seedInitialPuzzles();
     }
     return ids || [];
   }
 
   /**
-   * دریافت یک جدول با آیدی
+   * دریافت یک جدول مشخص با آیدی آن
    */
   async getPuzzle(puzzleId) {
-    const key = puzzleId.startsWith("puzzle:") ? puzzleId : Storage.KEY_PUZZLE(puzzleId);
-    return await this.getJson(key);
+    const cleanId = puzzleId.replace("puzzle:", "");
+    const key = Storage.KEY_PUZZLE(cleanId);
+    
+    // ابتدا از KV خوانده می‌شود
+    let puzzle = await this.getJson(key);
+    
+    // اگر در KV نبود، مستقیماً از فایل JSON گیت‌هاب دانلود و در KV ذخیره می‌شود
+    if (!puzzle) {
+      try {
+        const response = await fetch(`${Storage.GITHUB_RAW_BASE}/${cleanId}.json`);
+        if (response.ok) {
+          puzzle = await response.json();
+          await this.setJson(key, puzzle);
+        }
+      } catch (err) {
+        console.error(`Error fetching ${cleanId}.json from GitHub:`, err);
+      }
+    }
+    
+    return puzzle;
   }
 
   /**
-   * شارژ کامل KV با تمام ۱۰ جدول موجود در پروژه
+   * ساخت ایندکس ۱۰ جدول موجود در ریپازیتوری
    */
   async seedInitialPuzzles() {
-    const bank = [p001, p002, p003, p004, p005, p006, p007, p008, p009, p010];
+    const puzzleIds = [
+      "puzzle_001",
+      "puzzle_002",
+      "puzzle_003",
+      "puzzle_004",
+      "puzzle_005",
+      "puzzle_006",
+      "puzzle_007",
+      "puzzle_008",
+      "puzzle_009",
+      "puzzle_010"
+    ];
 
-    const puzzleIds = bank.map((p) => p.id || p.puzzle_id || `puzzle_${String(bank.indexOf(p) + 1).padStart(3, '0')}`);
-
-    // ۱. به‌روزرسانی لیست اصلی index
     await this.setJson(Storage.KEY_PUZZLE_INDEX, puzzleIds);
-
-    // ۲. ذخیره تک‌تک جدول‌ها در KV
-    for (let i = 0; i < bank.length; i++) {
-      const pId = puzzleIds[i];
-      await this.setJson(Storage.KEY_PUZZLE(pId), bank[i]);
-    }
-
     return puzzleIds;
   }
 
