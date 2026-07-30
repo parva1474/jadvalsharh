@@ -1,70 +1,72 @@
 /**
- * ماژول مدیریت لایه داده با Cloudflare KV
+ * مدیریت بانک جدول‌ها و ذخیره‌سازی KV
  */
-
 export class Storage {
-  constructor(kvNamespace) {
-    this.kv = kvNamespace;
+  constructor(kv) {
+    this.kv = kv;
   }
 
-  // کلیدهای کمکی
-  static KEY_GROUP_STATE(chatId) { return `group_state:${chatId}`; }
-  static KEY_GROUP_STATS(chatId) { return `group_stats:${chatId}`; }
-  static KEY_USER_SCORE(chatId, userId) { return `score:${chatId}:${userId}`; }
-  static KEY_GLOBAL_USER_SCORE(userId) { return `global_score:${userId}`; }
-  static KEY_PUZZLE_INDEX() { return `puzzles:index`; }
-  static KEY_PUZZLE_DATA(puzzleId) { return `puzzle:${puzzleId}`; }
-  static KEY_ACTIVE_QUESTION(chatId, questionId) { return `active_q:${chatId}:${questionId}`; }
-  static KEY_SETTINGS() { return `settings:global`; }
+  static KEY_PUZZLE_INDEX = "puzzles:index";
+  static KEY_PUZZLE = (id) => `puzzle:${id}`;
+  static KEY_GROUP_STATE = (chatId) => `group_state:${chatId}`;
+  static KEY_GROUP_STATS = (chatId) => `group_stats:${chatId}`;
 
-  // ذخیره‌سازی و دریافت وضعیت عمومی
-  async getJson(key) {
-    try {
-      const val = await this.kv.get(key);
-      if (!val) return null;
-      return typeof val === "string" ? JSON.parse(val) : val;
-    } catch (e) {
-      console.error(`Error reading key ${key}:`, e);
-      return null;
-    }
-  }
-
-  async setJson(key, data, ttlSeconds = null) {
-    const options = {};
-    if (ttlSeconds) options.expirationTtl = ttlSeconds;
-    await this.kv.put(key, JSON.stringify(data), options);
-  }
-
-  async delete(key) {
-    await this.kv.delete(key);
-  }
-
-  // --- مدیریت جدول‌ها ---
-  async addPuzzle(puzzle) {
-    const index = (await this.getJson(Storage.KEY_PUZZLE_INDEX())) || [];
-    if (!index.includes(puzzle.id)) {
-      index.push(puzzle.id);
-      await this.setJson(Storage.KEY_PUZZLE_INDEX(), index);
-    }
-    await this.setJson(Storage.KEY_PUZZLE_DATA(puzzle.id), puzzle);
-  }
-
-  async getPuzzle(puzzleId) {
-    return await this.getJson(Storage.KEY_PUZZLE_DATA(puzzleId));
-  }
-
+  // دریافت تمام آیدی‌های بانک جدول
   async getAllPuzzleIds() {
-    return (await this.getJson(Storage.KEY_PUZZLE_INDEX())) || [];
+    let ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
+    if (!ids || ids.length === 0) {
+      // اگر دیتابیس خالی بود، جدول‌های پیش‌فرض بانک شارژ می‌شوند
+      await this.seedInitialPuzzles();
+      ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
+    }
+    return ids || [];
   }
 
-  async deletePuzzle(puzzleId) {
-    let index = (await this.getJson(Storage.KEY_PUZZLE_INDEX())) || [];
-    index = index.filter(id => id !== puzzleId);
-    await this.setJson(Storage.KEY_PUZZLE_INDEX(), index);
-    await this.delete(Storage.KEY_PUZZLE_DATA(puzzleId));
+  // گرفتن یک جدول خاص از بانک
+  async getPuzzle(puzzleId) {
+    return await this.getJson(Storage.KEY_PUZZLE(puzzleId));
   }
 
-  // --- وضعیت جاری بازی گروه ---
+  // بانک اولیه جدول‌ها (می‌توانید جدول‌های بیشتر هم اینجا اضافه کنید)
+  async seedInitialPuzzles() {
+    const bank = [
+      {
+        id: "p1",
+        width: 4,
+        height: 4,
+        words: [
+          { id: 1, question: "پایتخت ایران", answer: "تهران", row: 0, col: 0, direction: "across" },
+          { id: 2, question: "سیاره سرخ", answer: "مریخ", row: 1, col: 0, direction: "across" }
+        ]
+      },
+      {
+        id: "p2",
+        width: 4,
+        height: 4,
+        words: [
+          { id: 1, question: "مرکز کشور فرانسه", answer: "پاریس", row: 0, col: 0, direction: "across" },
+          { id: 2, question: "بلندترین قله ایران", answer: "دماوند", row: 1, col: 0, direction: "across" }
+        ]
+      },
+      {
+        id: "p3",
+        width: 4,
+        height: 4,
+        words: [
+          { id: 1, question: "شاعر بوستان و گلستان", answer: "سعدی", row: 0, col: 0, direction: "across" },
+          { id: 2, question: "بزرگترین اقیانوس جهان", answer: "آرام", row: 1, col: 0, direction: "across" }
+        ]
+      }
+    ];
+
+    const puzzleIds = bank.map((p) => p.id);
+    await this.setJson(Storage.KEY_PUZZLE_INDEX, puzzleIds);
+
+    for (const puzzle of bank) {
+      await this.setJson(Storage.KEY_PUZZLE(puzzle.id), puzzle);
+    }
+  }
+
   async getGroupState(chatId) {
     return await this.getJson(Storage.KEY_GROUP_STATE(chatId));
   }
@@ -74,102 +76,15 @@ export class Storage {
   }
 
   async deleteGroupState(chatId) {
-    await this.delete(Storage.KEY_GROUP_STATE(chatId));
+    await this.kv.delete(Storage.KEY_GROUP_STATE(chatId));
   }
 
-  // --- وضعیت قفل بودن سؤالات توسط کاربر ---
-  async lockQuestion(chatId, questionId, userId, userName) {
-    const key = Storage.KEY_ACTIVE_QUESTION(chatId, questionId);
-    const existing = await this.getJson(key);
-    if (existing && existing.userId !== userId) {
-      return { success: false, lockedBy: existing.userName };
-    }
-    // قفل شدن به مدت ۵ دقیقه
-    await this.setJson(key, { userId, userName }, 300);
-    return { success: true };
+  async getJson(key) {
+    const val = await this.kv.get(key);
+    return val ? JSON.parse(val) : null;
   }
 
-  async unlockQuestion(chatId, questionId) {
-    await this.delete(Storage.KEY_ACTIVE_QUESTION(chatId, questionId));
-  }
-
-  async getQuestionLock(chatId, questionId) {
-    return await this.getJson(Storage.KEY_ACTIVE_QUESTION(chatId, questionId));
-  }
-
-  // --- آمار و امتیازات ---
-  async updateUserScore(chatId, user, scoreDelta, isCorrect, isHint = false) {
-    // امتیاز گروهی
-    const userKey = Storage.KEY_USER_SCORE(chatId, user.id);
-    let userData = (await this.getJson(userKey)) || {
-      userId: user.id,
-      name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
-      score: 0,
-      correct: 0,
-      wrong: 0,
-      hints: 0
-    };
-
-    userData.score += scoreDelta;
-    if (isCorrect) userData.correct += 1;
-    else if (isHint) userData.hints += 1;
-    else userData.wrong += 1;
-
-    await this.setJson(userKey, userData);
-
-    // امتیاز جهانی
-    const globalKey = Storage.KEY_GLOBAL_USER_SCORE(user.id);
-    let globalData = (await this.getJson(globalKey)) || {
-      userId: user.id,
-      name: userData.name,
-      score: 0,
-      correct: 0,
-      wrong: 0,
-      hints: 0
-    };
-
-    globalData.score += scoreDelta;
-    if (isCorrect) globalData.correct += 1;
-    else if (isHint) globalData.hints += 1;
-    else globalData.wrong += 1;
-
-    await this.setJson(globalKey, globalData);
-
-    return userData;
-  }
-
-  // دریافت تمام امتیازات یک گروه
-  async getGroupLeaderboard(chatId) {
-    const prefix = `score:${chatId}:`;
-    const list = await this.kv.list({ prefix });
-    const scores = [];
-
-    for (const key of list.keys) {
-      const data = await this.getJson(key.name);
-      if (data) scores.push(data);
-    }
-
-    return scores.sort((a, b) => b.score - a.score);
-  }
-
-  // ثبت آمار پایان جدول برای گروه
-  async recordGroupStats(chatId, solveTimeSeconds, solvedByAuto = false) {
-    const key = Storage.KEY_GROUP_STATS(chatId);
-    let stats = (await this.getJson(key)) || {
-      totalPlayed: 0,
-      totalSolved: 0,
-      totalTimes: [],
-      autoSolved: 0
-    };
-
-    stats.totalPlayed += 1;
-    if (!solvedByAuto) {
-      stats.totalSolved += 1;
-      stats.totalTimes.push(solveTimeSeconds);
-    } else {
-      stats.autoSolved += 1;
-    }
-
-    await this.setJson(key, stats);
+  async setJson(key, value) {
+    await this.kv.put(key, JSON.stringify(value));
   }
 }
