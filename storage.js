@@ -1,5 +1,5 @@
 /**
- * مدیریت بانک جدول‌ها و ذخیره‌سازی KV
+ * مدیریت بانک جدول‌ها و ذخیره‌سازی Cloudflare KV
  */
 export class Storage {
   constructor(kv) {
@@ -11,23 +11,30 @@ export class Storage {
   static KEY_GROUP_STATE = (chatId) => `group_state:${chatId}`;
   static KEY_GROUP_STATS = (chatId) => `group_stats:${chatId}`;
 
-  // دریافت تمام آیدی‌های بانک جدول
+  /**
+   * دریافت تمام آیدی‌های جدول از puzzles:index
+   */
   async getAllPuzzleIds() {
     let ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
-    if (!ids || ids.length === 0) {
-      // اگر دیتابیس خالی بود، جدول‌های پیش‌فرض بانک شارژ می‌شوند
-      await this.seedInitialPuzzles();
-      ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      // ساخت و شارژ اولیه index در صورت خالی بودن
+      ids = await this.seedInitialPuzzles();
     }
     return ids || [];
   }
 
-  // گرفتن یک جدول خاص از بانک
+  /**
+   * دریافت یک جدول مشخص با آیدی آن (مثلاً puzzle:p1)
+   */
   async getPuzzle(puzzleId) {
-    return await this.getJson(Storage.KEY_PUZZLE(puzzleId));
+    // اگر آیدی پیش‌وند puzzle: نداشت، اضافه می‌شود
+    const key = puzzleId.startsWith("puzzle:") ? puzzleId : Storage.KEY_PUZZLE(puzzleId);
+    return await this.getJson(key);
   }
 
-  // بانک اولیه جدول‌ها (می‌توانید جدول‌های بیشتر هم اینجا اضافه کنید)
+  /**
+   * شارژ بانک اطلاعاتی و ساخت index.json جدید
+   */
   async seedInitialPuzzles() {
     const bank = [
       {
@@ -44,8 +51,8 @@ export class Storage {
         width: 4,
         height: 4,
         words: [
-          { id: 1, question: "مرکز کشور فرانسه", answer: "پاریس", row: 0, col: 0, direction: "across" },
-          { id: 2, question: "بلندترین قله ایران", answer: "دماوند", row: 1, col: 0, direction: "across" }
+          { id: 1, question: "مرکز فرانسه", answer: "پاریس", row: 0, col: 0, direction: "across" },
+          { id: 2, question: "قله بلند ایران", answer: "دماوند", row: 1, col: 0, direction: "across" }
         ]
       },
       {
@@ -53,8 +60,17 @@ export class Storage {
         width: 4,
         height: 4,
         words: [
-          { id: 1, question: "شاعر بوستان و گلستان", answer: "سعدی", row: 0, col: 0, direction: "across" },
-          { id: 2, question: "بزرگترین اقیانوس جهان", answer: "آرام", row: 1, col: 0, direction: "across" }
+          { id: 1, question: "شاعر گلستان", answer: "سعدی", row: 0, col: 0, direction: "across" },
+          { id: 2, question: "اقیانوس بزرگ", answer: "آرام", row: 1, col: 0, direction: "across" }
+        ]
+      },
+      {
+        id: "p4",
+        width: 4,
+        height: 4,
+        words: [
+          { id: 1, question: "فلز گرانبها", answer: "طلا", row: 0, col: 0, direction: "across" },
+          { id: 2, question: "پایتخت ژاپن", answer: "توکیو", row: 1, col: 0, direction: "across" }
         ]
       }
     ];
@@ -65,6 +81,8 @@ export class Storage {
     for (const puzzle of bank) {
       await this.setJson(Storage.KEY_PUZZLE(puzzle.id), puzzle);
     }
+
+    return puzzleIds;
   }
 
   async getGroupState(chatId) {
