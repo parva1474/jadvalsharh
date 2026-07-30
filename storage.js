@@ -32,19 +32,20 @@ export class Storage {
     return await this.getJson(key);
   }
 
-    async seedInitialPuzzles() {
-    // لیست تمام فایل‌های JSON که بالا وارد کردی
-    const bank = [puzzle1, puzzle2, puzzle3];
-
-    const puzzleIds = bank.map((p) => p.id);
-    await this.setJson(Storage.KEY_PUZZLE_INDEX, puzzleIds);
-
-    for (const puzzle of bank) {
-      await this.setJson(Storage.KEY_PUZZLE(puzzle.id), puzzle);
-    }
-
-    return puzzleIds;
-    }
+  /**
+   * شارژ بانک اطلاعاتی جدول‌ها
+   */
+  async seedInitialPuzzles() {
+    const bank = [
+      {
+        id: "p1",
+        width: 4,
+        height: 4,
+        words: [
+          { id: 1, question: "پایتخت ایران", answer: "تهران", row: 0, col: 0, direction: "across" },
+          { id: 2, question: "سیاره سرخ", answer: "مریخ", row: 1, col: 0, direction: "across" }
+        ]
+      },
       {
         id: "p2",
         width: 4,
