@@ -2,18 +2,9 @@ name = "jadvalsharh"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-# تعریف پایگاه داده KV برای ذخیره‌سازی وضعیت ربات، جدول‌ها و امتیازات
-kv_namespaces = [
-  { binding = "CROSSWORD_KV", id = "ed83c716d1b9483e8b6c5e09a7b29562" }
-]
-
-# متغیرهای محیطی که باید از طریق Wrangler یا پنل Cloudflare مقداردهی شوند
 [vars]
-TELEGRAM_BOT_TOKEN = "8595424524:AAFf0l80Sl0zZzY-gNNf4fZUcjlnJ5pK1a8"
 ADMIN_USER_ID = "109710949"
 
-# 👈 این بخش جدید برای پشتیبانی از Import کردن فایل‌های JSON اضافه شد
-[[rules]]
-type = "Data"
-globs = ["**/*.json"]
-fallthrough = true
+[[kv_namespaces]]
+binding = "CROSSWORD_KV"
+id = "ed83c716d1b9483e8b6c5e09a7b29562"
