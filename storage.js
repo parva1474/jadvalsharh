@@ -19,8 +19,14 @@ export class Storage {
 
   // ذخیره‌سازی و دریافت وضعیت عمومی
   async getJson(key) {
-    const val = await this.kv.get(key, { type: "json" });
-    return val || null;
+    try {
+      const val = await this.kv.get(key);
+      if (!val) return null;
+      return typeof val === "string" ? JSON.parse(val) : val;
+    } catch (e) {
+      console.error(`Error reading key ${key}:`, e);
+      return null;
+    }
   }
 
   async setJson(key, data, ttlSeconds = null) {
