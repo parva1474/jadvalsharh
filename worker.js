@@ -1,10 +1,73 @@
 import { TelegramAPI } from "./telegram.js";
 import { Storage } from "./storage.js";
 import { CrosswordEngine } from "./crossword.js";
-import { toPersianDigits, formatDuration, getRandomElement } from "./utils.js";
+import { toPersianDigits } from "./utils.js";
 
+// ==========================================
+// ۱. بانک کلمات و سوالات (قابل گسترش)
+// ==========================================
+const WORD_BANK = [
+  { word: "ایران", question: "کشوری در جنوب غربی آسیا" },
+  { word: "تهران", question: "پایتخت ایران" },
+  { word: "ازادی", question: "برج معروف و نمادین تهران" },
+  { word: "سعدی", question: "شاعر بوستان و گلستان" },
+  { word: "حافظ", question: "لسان‌الغیب شیرازی" },
+  { word: "فردوسی", question: "سرایش‌گر شاهنامه" },
+  { word: "دماوند", question: "بلندترین قله ایران" },
+  { word: "خلیجفارس", question: "پهنه آبی جنوب ایران" },
+  { word: "سهند", question: "از کوه‌های استان آذربایجان شرقی" },
+  { word: "البرز", question: "رشته‌کوه شمالی ایران" },
+  { word: "زاگرس", question: "رشته‌کوه غربی ایران" },
+  { word: "اروند", question: "رود مرزی ایران و عراق" },
+  { word: "سیمرغ", question: "پرنده افسانه‌ای شاهنامه" },
+  { word: "رستم", question: "قهرمان نامدار شاهنامه" },
+  { word: "سهراب", question: "فرزند رستم" },
+  { word: "کوروش", question: "بنیان‌گذار هخامنشیان" },
+  { word: "داریوش", question: "پادشاه بزرگ هخامنشی" },
+  { word: "کارون", question: "طولانی‌ترین رود ایران" },
+  { word: "کاسپین", question: "نام دیگر دریاچه خزر" }
+];
+
+// ==========================================
+// ۲. موتور تولید پویای جدول
+// ==========================================
+class DynamicGenerator {
+  static generatePuzzle(wordCount = 5) {
+    const shuffled = [...WORD_BANK].sort(() => 0.5 - Math.random());
+    const selectedWords = shuffled.slice(0, wordCount);
+
+    const puzzleWords = [];
+    let idCounter = 1;
+
+    selectedWords.forEach((item, index) => {
+      const direction = index % 2 === 0 ? "across" : "down";
+      let startRow = direction === "across" ? (index * 2) % 6 : 0;
+      let startCol = direction === "across" ? 0 : (index * 2 + 1) % 6;
+
+      puzzleWords.push({
+        id: idCounter++,
+        answer: item.word,
+        clue: item.question,
+        direction: direction,
+        startRow: startRow,
+        startCol: startCol
+      });
+    });
+
+    return {
+      id: "dynamic_" + Date.now(),
+      title: "جدول پویا",
+      rows: 6,
+      cols: 6,
+      words: puzzleWords
+    };
+  }
+}
+
+// ==========================================
+// ۳. هندلرهای اصلی Cloudflare Worker
+// ==========================================
 export default {
-  // پردازش درخواست‌های Webhook تلگرام
   async fetch(request, env, ctx) {
     if (request.method !== "POST") {
       return new Response("OK - Crossword Bot Active", { status: 200 });
@@ -23,7 +86,6 @@ export default {
     return new Response("OK", { status: 200 });
   },
 
-  // اجرای زمان‌بندی دوره‌ای (CRON)
   async scheduled(event, env, ctx) {
     const telegram = new TelegramAPI(env.TELEGRAM_BOT_TOKEN);
     const storage = new Storage(env.CROSSWORD_KV);
@@ -32,10 +94,9 @@ export default {
 };
 
 /**
- * پردازش تمام ورودهای تلگرام
+ * پردازش دستورات ورودی تلگرام
  */
 async function handleTelegramUpdate(update, telegram, storage, env) {
-  // ۱. کلیک روی دکمه‌های شیشه‌ای
   if (update.callback_query) {
     await handleCallbackQuery(update.callback_query, telegram, storage);
     return;
@@ -48,99 +109,17 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
   const userId = message.from.id;
   const text = message.text.trim();
 
-  // ۲. پردازش دستورات
   if (text.startsWith("/")) {
     const rawCommand = text.split(" ")[0].toLowerCase();
-    const command = rawCommand.split("@")[0]; // حذف یوزرنیم ربات جهت اجرا در گروه
+    const command = rawCommand.split("@")[0];
 
     switch (command) {
       case "/start":
-        await telegram.sendMessage(chatId, "سلام! به ربات جدول کلمات متقاطع خوش آمدید.\nبرای ایجاد جدول در گروه از دستور /new استفاده کنید.");
-        break;
-
-      case "/reload":
-        const ids = await storage.seedInitialPuzzles();
-        await storage.deleteGroupState(chatId);
-        await telegram.sendMessage(chatId, `🔄 دیتابیس با موفقیت بازنشانی شد!\nتعداد ${toPersianDigits(ids.length)} جدول شناسایی شدند.`);
+        await telegram.sendMessage(chatId, "سلام! به ربات جدول کلمات متقاطع خوش آمدید.\nبرای ایجاد جدول جدید از دستور /new استفاده کنید.");
         break;
 
       case "/new":
-/**
- * ایجاد جدول جدید با الگوریتم شارژ خودکار و عدم تکرار
- */
-async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
-  try {
-    await storage.deleteGroupState(chatId);
-
-    // ۱. دریافت آیدی‌ها (اگر خالی بود، خودش خودکار شارژ می‌کنه)
-    let allPuzzleIds = await storage.getAllPuzzleIds();
-    
-    // پشتیبان: اگر باز هم خالی بود، مستقیماً شارژ اولیه انجام بده
-    if (!allPuzzleIds || allPuzzleIds.length === 0) {
-      allPuzzleIds = await storage.seedInitialPuzzles();
-    }
-
-    if (!allPuzzleIds || allPuzzleIds.length === 0) {
-      await telegram.sendMessage(chatId, "❌ خطا: اتصال به بانک جدول‌ها برقرار نشد.");
-      return;
-    }
-
-    // ۲. دریافت آمار جدول‌های بازی شده
-    let groupStats = (await storage.getJson(Storage.KEY_GROUP_STATS(chatId))) || {};
-    let playedIds = groupStats.playedPuzzleIds || [];
-
-    // ۳. پیدا کردن جدول‌های غیرتکراری
-    let availableIds = allPuzzleIds.filter((id) => !playedIds.includes(id));
-
-    if (availableIds.length === 0) {
-      playedIds = [];
-      availableIds = allPuzzleIds;
-    }
-
-    // ۴. انتخاب تصادفی
-    const selectedPuzzleId = getRandomElement(availableIds);
-    const puzzle = await storage.getPuzzle(selectedPuzzleId);
-
-    if (!puzzle) {
-      await telegram.sendMessage(chatId, `❌ دریافت فایل جدول ${selectedPuzzleId} ناموفق بود.`);
-      return;
-    }
-
-    // ۵. ثبت و ذخیره
-    playedIds.push(selectedPuzzleId);
-    groupStats.playedPuzzleIds = playedIds;
-    await storage.setJson(Storage.KEY_GROUP_STATS(chatId), groupStats);
-
-    const newState = {
-      puzzleId: puzzle.id || selectedPuzzleId,
-      solvedWordIds: [],
-      userActiveQuestion: {},
-      startTime: Date.now(),
-      isCompleted: false,
-      messageId: null
-    };
-
-    const tableText = CrosswordEngine.renderTable(puzzle, []);
-    const questionsText = CrosswordEngine.renderQuestions(puzzle, []);
-    const fullText = tableText + questionsText;
-    const keyboard = buildInlineKeyboard(puzzle, []);
-
-    const sentMsg = await telegram.sendMessage(chatId, fullText, keyboard);
-    if (sentMsg && sentMsg.result) {
-      newState.messageId = sentMsg.result.message_id;
-      await storage.saveGroupState(chatId, newState);
-    }
-  } catch (err) {
-    await telegram.sendMessage(chatId, `💥 خطا در دریافت جدول:\n${err.message}`);
-  }
-}
-        
-      case "/rank":
-        await handleRankCommand(chatId, telegram, storage);
-        break;
-
-      case "/stats":
-        await handleStatsCommand(chatId, telegram, storage);
+        await handleNewPuzzleCommand(chatId, userId, telegram, storage, env);
         break;
 
       case "/cancel":
@@ -153,52 +132,25 @@ async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
     return;
   }
 
-  // ۳. پردازش متن جواب ارسال شده توسط کاربر
   await handleUserAnswerInput(chatId, message, telegram, storage);
 }
+
+/**
+ * ساخت آنی جدول جدید بدون نیاز به دیتابیس خارجی
+ */
 async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
   try {
     await storage.deleteGroupState(chatId);
 
-    // ۱. دریافت آیدی‌ها از storage
-    let allPuzzleIds = await storage.getAllPuzzleIds();
+    // ۱. تولید آنی و تصادفی یک جدول جدید
+    const puzzle = DynamicGenerator.generatePuzzle(5);
 
-    // پشتیبان سخت‌گیرانه: اگر به هر دلیلی خالی بود، آرایه لیست ثابت را جایگزین کن
-    if (!allPuzzleIds || !Array.isArray(allPuzzleIds) || allPuzzleIds.length === 0) {
-      allPuzzleIds = [
-        "puzzle_001", "puzzle_002", "puzzle_003", "puzzle_004", "puzzle_005",
-        "puzzle_006", "puzzle_007", "puzzle_008", "puzzle_009", "puzzle_010"
-      ];
-    }
+    // ۲. ذخیره ساختار جدول در KV بر اساس آیدی گروه
+    await storage.setJson(`current_puzzle:${chatId}`, puzzle);
 
-    // ۲. دریافت آمار بازی
-    let groupStats = (await storage.getJson(Storage.KEY_GROUP_STATS(chatId))) || {};
-    let playedIds = groupStats.playedPuzzleIds || [];
-
-    // ۳. فیلتر جدول‌های جدید
-    let availableIds = allPuzzleIds.filter((id) => !playedIds.includes(id));
-
-    if (availableIds.length === 0) {
-      playedIds = [];
-      availableIds = allPuzzleIds;
-    }
-
-    // ۴. انتخاب تصادفی
-    const selectedPuzzleId = getRandomElement(availableIds);
-    const puzzle = await storage.getPuzzle(selectedPuzzleId);
-
-    if (!puzzle) {
-      await telegram.sendMessage(chatId, `❌ خطا در دانلود فایل ${selectedPuzzleId}.json از گیت‌هاب.`);
-      return;
-    }
-
-    // ۵. ذخیره و ثبت
-    playedIds.push(selectedPuzzleId);
-    groupStats.playedPuzzleIds = playedIds;
-    await storage.setJson(Storage.KEY_GROUP_STATS(chatId), groupStats);
-
+    // ۳. ذخیره وضعیت بازی
     const newState = {
-      puzzleId: puzzle.id || selectedPuzzleId,
+      puzzleId: puzzle.id,
       solvedWordIds: [],
       userActiveQuestion: {},
       startTime: Date.now(),
@@ -217,78 +169,23 @@ async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
       await storage.saveGroupState(chatId, newState);
     }
   } catch (err) {
-    await telegram.sendMessage(chatId, `💥 خطای غیرمنتظره:\n${err.message}`);
-  }
-}
-
-    // ۲. دریافت لیست جدول‌های بازی‌شده در این گروه
-    let groupStats = (await storage.getJson(Storage.KEY_GROUP_STATS(chatId))) || {};
-    let playedIds = groupStats.playedPuzzleIds || [];
-
-    // ۳. فیلتر کردن جدول‌ها (فقط جدول‌هایی که هنوز در این گروه بازی نشده‌اند)
-    let availableIds = allPuzzleIds.filter((id) => !playedIds.includes(id));
-
-    // اگر تمام جدول‌های بانک بازی شده باشند، آمار ریست شده و دوباره همه آزاد می‌شوند
-    if (availableIds.length === 0) {
-      playedIds = [];
-      availableIds = allPuzzleIds;
-    }
-
-    // ۴. انتخاب یک جدول غیرتکراری به صورت تصادفی از بانک
-    const selectedPuzzleId = getRandomElement(availableIds);
-    const puzzle = await storage.getPuzzle(selectedPuzzleId);
-
-    if (!puzzle) {
-      await telegram.sendMessage(chatId, `❌ فایل جدول ${selectedPuzzleId} در KV یا گیت‌هاب یافت نشد.`);
-      return;
-    }
-
-    // ۵. ثبت این جدول در لیست بازی‌شده‌های گروه
-    playedIds.push(selectedPuzzleId);
-    groupStats.playedPuzzleIds = playedIds;
-    await storage.setJson(Storage.KEY_GROUP_STATS(chatId), groupStats);
-
-    // ۶. ذخیره وضعیت جدید بازی
-    const newState = {
-      puzzleId: puzzle.id || selectedPuzzleId,
-      solvedWordIds: [],
-      userActiveQuestion: {},
-      startTime: Date.now(),
-      isCompleted: false,
-      messageId: null
-    };
-
-    const tableText = CrosswordEngine.renderTable(puzzle, []);
-    const questionsText = CrosswordEngine.renderQuestions(puzzle, []);
-    const fullText = tableText + questionsText;
-    const keyboard = buildInlineKeyboard(puzzle, []);
-
-    const sentMsg = await telegram.sendMessage(chatId, fullText, keyboard);
-    if (sentMsg && sentMsg.result) {
-      newState.messageId = sentMsg.result.message_id;
-      await storage.saveGroupState(chatId, newState);
-    }
-  } catch (err) {
-    await telegram.sendMessage(chatId, `💥 خطا در دریافت جدول جدید از بانک:\n${err.message}`);
+    await telegram.sendMessage(chatId, `💥 خطا در ساخت جدول جدید:\n${err.message}`);
   }
 }
 
 /**
- * مدیریت لمس دکمه‌های کیبورد شیشه‌ای
+ * مدیریت کلیک روی دکمه‌های سوالات
  */
 async function handleCallbackQuery(callbackQuery, telegram, storage) {
   const chatId = callbackQuery.message.chat.id;
   const userId = callbackQuery.from.id;
-  const userName = callbackQuery.from.first_name || "کاربر";
+  const data = callbackQuery.data;
 
   const state = await storage.getGroupState(chatId);
   if (!state || state.isCompleted) {
     await telegram.answerCallbackQuery(callbackQuery.id, "این جدول فعال نیست.", true);
     return;
   }
-
-  const puzzle = await storage.getPuzzle(state.puzzleId);
-  const data = callbackQuery.data;
 
   if (data.startsWith("q_")) {
     const qId = parseInt(data.replace("q_", ""), 10);
@@ -303,12 +200,11 @@ async function handleCallbackQuery(callbackQuery, telegram, storage) {
 
     await telegram.answerCallbackQuery(callbackQuery.id, `سوال ${toPersianDigits(qId)} انتخاب شد.`);
     await telegram.sendMessage(chatId, `پاسخ سوال ${toPersianDigits(qId)} را بنویسید.`);
-    return;
   }
 }
 
 /**
- * پردازش پاسخ ارسالی کاربر
+ * پردازش پاسخ کاربر
  */
 async function handleUserAnswerInput(chatId, message, telegram, storage) {
   const userId = message.from.id;
@@ -318,7 +214,8 @@ async function handleUserAnswerInput(chatId, message, telegram, storage) {
   const activeQId = state.userActiveQuestion[userId];
   if (!activeQId) return;
 
-  const puzzle = await storage.getPuzzle(state.puzzleId);
+  // خواندن جدول فعلی این گروه از KV
+  const puzzle = await storage.getJson(`current_puzzle:${chatId}`);
   if (!puzzle) return;
 
   const word = puzzle.words.find((w) => w.id === activeQId);
@@ -342,7 +239,7 @@ async function handleUserAnswerInput(chatId, message, telegram, storage) {
     if (isAllSolved) {
       await telegram.sendMessage(chatId, "🎉 تبریک! جدول با موفقیت و به طور کامل حل شد!");
     } else {
-      await telegram.sendMessage(chatId, `✅ پاسخ سوال ${toPersianDigits(word.id)} درست بود! (+۱۰ امتیاز)`);
+      await telegram.sendMessage(chatId, `✅ پاسخ سوال ${toPersianDigits(word.id)} درست بود!`);
     }
   } else {
     const pattern = CrosswordEngine.generateWrongPattern(puzzle, word, state.solvedWordIds);
@@ -356,7 +253,7 @@ async function handleUserAnswerInput(chatId, message, telegram, storage) {
 }
 
 /**
- * به‌روزرسانی پیام اصلی جدول
+ * به‌روزرسانی پیام جدول
  */
 async function updatePuzzleMessage(chatId, state, puzzle, telegram) {
   if (!state.messageId) return;
@@ -370,7 +267,7 @@ async function updatePuzzleMessage(chatId, state, puzzle, telegram) {
 }
 
 /**
- * ساخت کیبورد شیشه‌ای دکمه‌های سوالات
+ * ساخت کیبورد شیشه‌ای
  */
 function buildInlineKeyboard(puzzle, solvedWordIds) {
   const inlineKeyboard = [];
@@ -399,7 +296,7 @@ function buildInlineKeyboard(puzzle, solvedWordIds) {
 }
 
 /**
- * انصراف کاربر (/cancel)
+ * انصراف کاربر
  */
 async function handleCancelCommand(chatId, userId, telegram, storage) {
   const state = await storage.getGroupState(chatId);
@@ -414,23 +311,7 @@ async function handleCancelCommand(chatId, userId, telegram, storage) {
 }
 
 /**
- * رتبه‌بندی (/rank)
- */
-async function handleRankCommand(chatId, telegram, storage) {
-  await telegram.sendMessage(chatId, "🏆 بخش رتبه‌بندی فعلاً در حال به‌روزرسانی است.");
-}
-
-/**
- * آمار (/stats)
- */
-async function handleStatsCommand(chatId, telegram, storage) {
-  const groupStats = (await storage.getJson(Storage.KEY_GROUP_STATS(chatId))) || { playedPuzzleIds: [] };
-  const count = groupStats.playedPuzzleIds ? groupStats.playedPuzzleIds.length : 0;
-  await telegram.sendMessage(chatId, `📊 تعداد جدول‌های شروع شده در این گروه: ${toPersianDigits(count)}`);
-}
-
-/**
- * حل خودکار CRON
+ * حل خودکار زمان‌بندی‌شده
  */
 async function processAutoSolutions(telegram, storage) {
   const list = await storage.kv.list({ prefix: "group_state:" });
@@ -441,7 +322,7 @@ async function processAutoSolutions(telegram, storage) {
     if (!state || state.isCompleted) continue;
 
     const chatId = key.name.replace("group_state:", "");
-    const puzzle = await storage.getPuzzle(state.puzzleId);
+    const puzzle = await storage.getJson(`current_puzzle:${chatId}`);
     if (!puzzle) continue;
 
     if ((now - state.startTime) / (1000 * 60 * 60) >= 24) {
@@ -452,4 +333,4 @@ async function processAutoSolutions(telegram, storage) {
       await telegram.sendMessage(chatId, "⏰ مهلت ۲۴ ساعته جدول پایان یافت.");
     }
   }
-}
+    }
