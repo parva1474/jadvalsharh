@@ -85,18 +85,68 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
 }
 
 /**
- * ایجاد جدول جدید در گروه (/new)
+ * ایجاد جدول جدید با الگوریتم عدم تکرار و اتصال به بانک جدول
  */
 async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
   try {
-    // پاکسازی وضعیت قبلی برای شروع بازی تازه
     await storage.deleteGroupState(chatId);
 
+    // ۱. دریافت کل آیدی‌های موجود در بانک جدول
     const allPuzzleIds = await storage.getAllPuzzleIds();
     if (!allPuzzleIds || allPuzzleIds.length === 0) {
-      await telegram.sendMessage(chatId, "❌ هیچ جدولی در دیتابیس (puzzles:index) یافت نشد.");
+      await telegram.sendMessage(chatId, "❌ هیچ جدولی در بانک اطلاعاتی یافت نشد.");
       return;
     }
+
+    // ۲. دریافت لیست جدول‌های بازی‌شده در این گروه
+    let groupStats = (await storage.getJson(Storage.KEY_GROUP_STATS(chatId))) || {};
+    let playedIds = groupStats.playedPuzzleIds || [];
+
+    // ۳. فیلتر کردن جدول‌ها (فقط جدول‌هایی که هنوز در این گروه بازی نشده‌اند)
+    let availableIds = allPuzzleIds.filter((id) => !playedIds.includes(id));
+
+    // اگر تمام جدول‌های بانک بازی شده باشند، آمار ریست شده و دوباره همه آزاد می‌شوند
+    if (availableIds.length === 0) {
+      playedIds = [];
+      availableIds = allPuzzleIds;
+    }
+
+    // ۴. انتخاب یک جدول غیرتکراری به صورت تصادفی از بانک
+    const selectedPuzzleId = getRandomElement(availableIds);
+    const puzzle = await storage.getPuzzle(selectedPuzzleId);
+
+    if (!puzzle) {
+      await telegram.sendMessage(chatId, `❌ جدول ${selectedPuzzleId} در دیتابیس یافت نشد.`);
+      return;
+    }
+
+    // ۵. ثبت این جدول در لیست بازی‌شده‌های گروه
+    playedIds.push(selectedPuzzleId);
+    groupStats.playedPuzzleIds = playedIds;
+    await storage.setJson(Storage.KEY_GROUP_STATS(chatId), groupStats);
+
+    // ۶. ذخیره وضعیت جدید بازی
+    const newState = {
+      puzzleId: puzzle.id,
+      solvedWordIds: [],
+      userActiveQuestion: {},
+      startTime: Date.now(),
+      isCompleted: false,
+      messageId: null
+    };
+
+    const fullText = buildPuzzleDisplay(puzzle, []);
+    const keyboard = buildInlineKeyboard(puzzle, []);
+
+    const sentMsg = await telegram.sendMessage(chatId, fullText, keyboard);
+    if (sentMsg && sentMsg.result) {
+      newState.messageId = sentMsg.result.message_id;
+      await storage.saveGroupState(chatId, newState);
+    }
+  } catch (err) {
+    await telegram.sendMessage(chatId, `💥 خطا در دریافت جدول جدید از بانک:\n${err.message}`);
+  }
+}
 
     const selectedPuzzleId = getRandomElement(allPuzzleIds);
     const puzzle = await storage.getPuzzle(selectedPuzzleId);
