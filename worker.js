@@ -106,12 +106,6 @@ async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
     console.error("Admin check failed:", e);
   }
 
-  let currentState = await storage.getGroupState(chatId);
-  if (currentState && !currentState.isCompleted) {
-    await telegram.sendMessage(chatId, "⚠️ یک جدول فعال در گروه وجود دارد. ابتدا آن را تمام کنید یا از پنل مدیریت حذف نمایید.");
-    return;
-  }
-
   // دریافت لیست تمام جدول‌ها
   const allPuzzleIds = await storage.getAllPuzzleIds();
   if (!allPuzzleIds || allPuzzleIds.length === 0) {
