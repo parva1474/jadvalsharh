@@ -11,11 +11,10 @@ export class Storage {
   static KEY_GROUP_STATE = (chatId) => `group_state:${chatId}`;
   static KEY_GROUP_STATS = (chatId) => `group_stats:${chatId}`;
 
+  // آدرس مستقیم پوشه جدول‌ها در گیت‌هاب شما
   static GITHUB_RAW_BASE = "https://raw.githubusercontent.com/parva1474/jadvalsharh/main/puzzles";
 
-  /**
-   * لیست ۱۰ جدول استاندارد شما در گیت‌هاب
-   */
+  // لیست ۱۰ جدول موجود در ریپازیتوری
   static DEFAULT_PUZZLES = [
     "puzzle_001",
     "puzzle_002",
@@ -30,19 +29,27 @@ export class Storage {
   ];
 
   /**
-   * دریافت تمام آیدی‌های جدول از puzzles:index
-   * (اگر خالی باشد، اتوماتیک ۱۰ جدول را ست می‌کند)
+   * دریافت آیدی تمام جدول‌ها (با ساخت خودکار در صورت خالی بودن)
    */
   async getAllPuzzleIds() {
-    let ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      ids = await this.seedInitialPuzzles();
+    let ids = null;
+    try {
+      ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
+    } catch (e) {
+      console.error("Error reading index from KV:", e);
     }
+
+    // اگر دیتابیس خالی بود، لیست ۱۰ تایی رو قرار میده و توی KV ذخیره میکنه
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      ids = Storage.DEFAULT_PUZZLES;
+      await this.setJson(Storage.KEY_PUZZLE_INDEX, ids);
+    }
+
     return ids;
   }
 
   /**
-   * دریافت یک جدول مشخص با آیدی آن
+   * دریافت یک جدول مشخص
    */
   async getPuzzle(puzzleId) {
     const cleanId = puzzleId.replace("puzzle:", "");
@@ -51,7 +58,7 @@ export class Storage {
     // ۱. ابتدا از KV خوانده می‌شود
     let puzzle = await this.getJson(key);
     
-    // ۲. اگر در KV نبود، مستقیماً از فایل JSON گیت‌هاب دانلود و ذخیره می‌شود
+    // ۲. اگر در KV نبود، مستقیم از گیت‌هاب دانلود شده و در KV ذخیره می‌شود
     if (!puzzle) {
       try {
         const response = await fetch(`${Storage.GITHUB_RAW_BASE}/${cleanId}.json`);
@@ -60,81 +67,18 @@ export class Storage {
           await this.setJson(key, puzzle);
         }
       } catch (err) {
-        console.error(`Error fetching ${cleanId}.json from GitHub:`, err);
+        console.error(`Error fetching ${cleanId}.json:`, err);
       }
     }
     
     return puzzle;
-
-/**
- * ایجاد جدول جدید با الگوریتم شارژ خودکار و عدم تکرار
- */
-async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
-  try {
-    await storage.deleteGroupState(chatId);
-
-    // ۱. دریافت آیدی‌ها (اگر خالی بود، خودش خودکار شارژ می‌کنه)
-    let allPuzzleIds = await storage.getAllPuzzleIds();
-    
-    // پشتیبان: اگر باز هم خالی بود، مستقیماً شارژ اولیه انجام بده
-    if (!allPuzzleIds || allPuzzleIds.length === 0) {
-      allPuzzleIds = await storage.seedInitialPuzzles();
-    }
-
-    if (!allPuzzleIds || allPuzzleIds.length === 0) {
-      await telegram.sendMessage(chatId, "❌ خطا: اتصال به بانک جدول‌ها برقرار نشد.");
-      return;
-    }
-
-    // ۲. دریافت آمار جدول‌های بازی شده
-    let groupStats = (await storage.getJson(Storage.KEY_GROUP_STATS(chatId))) || {};
-    let playedIds = groupStats.playedPuzzleIds || [];
-
-    // ۳. پیدا کردن جدول‌های غیرتکراری
-    let availableIds = allPuzzleIds.filter((id) => !playedIds.includes(id));
-
-    if (availableIds.length === 0) {
-      playedIds = [];
-      availableIds = allPuzzleIds;
-    }
-
-    // ۴. انتخاب تصادفی
-    const selectedPuzzleId = getRandomElement(availableIds);
-    const puzzle = await storage.getPuzzle(selectedPuzzleId);
-
-    if (!puzzle) {
-      await telegram.sendMessage(chatId, `❌ دریافت فایل جدول ${selectedPuzzleId} ناموفق بود.`);
-      return;
-    }
-
-    // ۵. ثبت و ذخیره
-    playedIds.push(selectedPuzzleId);
-    groupStats.playedPuzzleIds = playedIds;
-    await storage.setJson(Storage.KEY_GROUP_STATS(chatId), groupStats);
-
-    const newState = {
-      puzzleId: puzzle.id || selectedPuzzleId,
-      solvedWordIds: [],
-      userActiveQuestion: {},
-      startTime: Date.now(),
-      isCompleted: false,
-      messageId: null
-    };
-
-    const tableText = CrosswordEngine.renderTable(puzzle, []);
-    const questionsText = CrosswordEngine.renderQuestions(puzzle, []);
-    const fullText = tableText + questionsText;
-    const keyboard = buildInlineKeyboard(puzzle, []);
-
-    const sentMsg = await telegram.sendMessage(chatId, fullText, keyboard);
-    if (sentMsg && sentMsg.result) {
-      newState.messageId = sentMsg.result.message_id;
-      await storage.saveGroupState(chatId, newState);
-    }
-  } catch (err) {
-    await telegram.sendMessage(chatId, `💥 خطا در دریافت جدول:\n${err.message}`);
   }
-}
+
+  async seedInitialPuzzles() {
+    await this.setJson(Storage.KEY_PUZZLE_INDEX, Storage.DEFAULT_PUZZLES);
+    return Storage.DEFAULT_PUZZLES;
+  }
+
   async getGroupState(chatId) {
     return await this.getJson(Storage.KEY_GROUP_STATE(chatId));
   }
