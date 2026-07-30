@@ -53,7 +53,9 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
 
   // بررسی دستورات ادمین و عمومی
   if (text.startsWith("/")) {
-    const command = text.split(" ")[0].toLowerCase().replace("@" + env.BOT_USERNAME, "");
+    // جلوگیری از کرش در صورت نبود BOT_USERNAME
+    const botUsername = env.BOT_USERNAME ? env.BOT_USERNAME.toLowerCase() : "";
+    const command = text.split(" ")[0].toLowerCase().replace("@" + botUsername, "");
 
     switch (command) {
       case "/start":
@@ -61,23 +63,8 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
         break;
 
       case "/new":
-  // موقتا چک کردن ادمین را برمی‌داریم تا تست کنیم
-  let allPuzzleIds = await storage.getAllPuzzleIds();
-  if (allPuzzleIds.length === 0) {
-    await telegram.sendMessage(chatId, "❌ هیچ جدولی پیدا نشد.");
-    return;
-  }
-  
-  let selectedPuzzleId = allPuzzleIds[0];
-  let puzzle = await storage.getPuzzle(selectedPuzzleId);
-  
-  if (!puzzle) {
-    await telegram.sendMessage(chatId, "❌ خطایی در دریافت اطلاعات جدول رخ داد.");
-    return;
-  }
-
-  await telegram.sendMessage(chatId, `🎉 جدول پیدا شد! آیدی: ${puzzle.id}`);
-  break;
+        await handleNewPuzzleCommand(chatId, userId, telegram, storage, env);
+        break;
 
       case "/rank":
         await handleRankCommand(chatId, telegram, storage);
@@ -109,10 +96,15 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
  * ایجاد جدول جدید در گروه (/new)
  */
 async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
-  const isAdmin = await telegram.isAdmin(chatId, userId, env.ADMIN_USER_ID);
-  if (!isAdmin) {
-    await telegram.sendMessage(chatId, "❌ فقط مدیران گروه می‌توانند جدول جدید ایجاد کنند.");
-    return;
+  // بررسی ادمین بودن کاربر در گروه
+  try {
+    const isAdmin = await telegram.isAdmin(chatId, userId, env.ADMIN_USER_ID);
+    if (!isAdmin) {
+      await telegram.sendMessage(chatId, "❌ فقط مدیران گروه می‌توانند جدول جدید ایجاد کنند.");
+      return;
+    }
+  } catch (e) {
+    console.error("Admin check failed:", e);
   }
 
   let currentState = await storage.getGroupState(chatId);
@@ -123,7 +115,7 @@ async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
 
   // دریافت لیست تمام جدول‌ها
   const allPuzzleIds = await storage.getAllPuzzleIds();
-  if (allPuzzleIds.length === 0) {
+  if (!allPuzzleIds || allPuzzleIds.length === 0) {
     await telegram.sendMessage(chatId, "❌ هیچ جدولی در دیتابیس ثبت نشده است.");
     return;
   }
