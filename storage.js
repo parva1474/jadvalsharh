@@ -2,7 +2,6 @@
  * مدیریت بانک جدول‌ها و ذخیره‌سازی Cloudflare KV
  */
 
-// وارد کردن ۱۰ فایل جدول و ایندکس از پوشه puzzles
 import indexData from "./puzzles/index.json";
 import p001 from "./puzzles/puzzle_001.json";
 import p002 from "./puzzles/puzzle_002.json";
@@ -50,15 +49,15 @@ export class Storage {
   async seedInitialPuzzles() {
     const bank = [p001, p002, p003, p004, p005, p006, p007, p008, p009, p010];
 
-    // استخراج لیست آیدی تمام ۱۰ جدول
-    const puzzleIds = bank.map((p) => p.id);
+    const puzzleIds = bank.map((p) => p.id || p.puzzle_id || `puzzle_${String(bank.indexOf(p) + 1).padStart(3, '0')}`);
 
     // ۱. به‌روزرسانی لیست اصلی index
     await this.setJson(Storage.KEY_PUZZLE_INDEX, puzzleIds);
 
     // ۲. ذخیره تک‌تک جدول‌ها در KV
-    for (const puzzle of bank) {
-      await this.setJson(Storage.KEY_PUZZLE(puzzle.id), puzzle);
+    for (let i = 0; i < bank.length; i++) {
+      const pId = puzzleIds[i];
+      await this.setJson(Storage.KEY_PUZZLE(pId), bank[i]);
     }
 
     return puzzleIds;
