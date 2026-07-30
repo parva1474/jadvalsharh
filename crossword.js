@@ -23,7 +23,7 @@ export class CrosswordEngine {
     return grid;
   }
 
-  // رندر کردن کامل جدول به صورت متنی (Unicode)
+  // رندر کردن تمیز و هم‌تراز جدول به صورت ایموجی‌محور
   static renderTable(puzzle, solvedWordIds, revealedCellsOverride = {}) {
     const { width, height, words } = puzzle;
     const grid = this.createGrid(width, height);
@@ -33,21 +33,18 @@ export class CrosswordEngine {
       const isSolved = solvedWordIds.includes(w.id);
       const cells = getWordCells(w);
 
-      // قرار دادن شماره در خانه شروع
       if (!grid[w.row][w.col].number) {
         grid[w.row][w.col].number = w.id;
       }
 
-      cells.forEach(({ row, col, charIndex, char }) => {
+      cells.forEach(({ row, col, char }) => {
         if (row >= 0 && row < height && col >= 0 && col < width) {
           grid[row][col].isWord = true;
           grid[row][col].char = char;
 
-          // اگر کلمه اصلی حل شده باشد، خانه باز می‌شود
           if (isSolved) {
             grid[row][col].isRevealed = true;
           }
-          // باز شدن تقاطع‌ها یا حروف فاش‌شده
           if (revealedCellsOverride[`${row},${col}`]) {
             grid[row][col].isRevealed = true;
           }
@@ -55,36 +52,30 @@ export class CrosswordEngine {
       });
     });
 
-    // رسم مرزهای یونیکد
     let output = "<code>";
-    output += "┌" + "───┬".repeat(width - 1) + "───┐\n";
 
+    // رسم خانه‌های جدول
     for (let r = 0; r < height; r++) {
-      let line = "│";
+      let line = "";
       for (let c = 0; c < width; c++) {
         const cell = grid[r][c];
+
         if (!cell.isWord) {
-          line += " █ │"; // خانه خالی/مسدود
+          line += "⬛ "; // خانه سیاه (پوچ)
         } else if (cell.isRevealed) {
-          line += ` ${cell.char} │`; // خانه باز شده
+          line += `${cell.char}  `; // حرف حل شده
+        } else if (cell.number) {
+          // شماره سوال در خانه
+          const numStr = toPersianDigits(cell.number);
+          line += `${numStr}  `;
         } else {
-          // خانه حل‌نشده با شماره یا مربع
-          if (cell.number) {
-            const numStr = toPersianDigits(cell.number);
-            line += numStr.length === 1 ? ` ${numStr}│` : `${numStr}│`;
-          } else {
-            line += " □ │";
-          }
+          line += "⬜ "; // خانه خالی برای پاسخ
         }
       }
-      output += line + "\n";
-
-      if (r < height - 1) {
-        output += "├" + "───┼".repeat(width - 1) + "───┤\n";
-      }
+      output += line.trimEnd() + "\n";
     }
 
-    output += "└" + "───┴".repeat(width - 1) + "───┘</code>\n";
+    output += "</code>";
     return output;
   }
 
@@ -98,21 +89,20 @@ export class CrosswordEngine {
       const numStr = toPersianDigits(w.id);
 
       if (isSolved) {
-        text += `<s>${numStr}${dirSymbol} ${w.question}</s> ✅ (${w.answer})\n`;
+        text += `✅ <s><b>${numStr}${dirSymbol}</b> ${w.question}</s> (${w.answer})\n`;
       } else {
-        text += `<b>${numStr}${dirSymbol}</b> ${w.question} (${toPersianDigits(w.answer.length)} حرف)\n`;
+        text += `❓ <b>${numStr}${dirSymbol}</b> ${w.question} (<b>${toPersianDigits(w.answer.length)}</b> حرف)\n`;
       }
     });
 
     return text;
   }
 
-  // تولید الگوی اشتباه (شامل حروف تقاطع‌های باز شده)
+  // تولید الگوی راهنمای کلمه اشتباه
   static generateWrongPattern(puzzle, word, solvedWordIds) {
     const cells = getWordCells(word);
     let pattern = "";
 
-    // استخراج تمام خانه‌هایی که از قبل به دلیل حل شدن سایر سوالات تقاطعی باز شده‌اند
     const openCells = new Set();
     puzzle.words.forEach((w) => {
       if (solvedWordIds.includes(w.id)) {
@@ -124,14 +114,14 @@ export class CrosswordEngine {
       if (openCells.has(`${row},${col}`)) {
         pattern += ` ${char} `;
       } else {
-        pattern += " □ ";
+        pattern += " ⬜ ";
       }
     });
 
     return pattern.trim();
   }
 
-  // بررسی تداخل و صحت جدول جدید ساخته شده
+  // بررسی صحت ساختار جدول
   static validatePuzzleStructure(puzzle) {
     const { width, height, words } = puzzle;
     const gridMap = new Map();
