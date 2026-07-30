@@ -1,20 +1,6 @@
 /**
  * مدیریت بانک جدول‌ها و ذخیره‌سازی Cloudflare KV
  */
-
-// وارد کردن فایل‌های JSON جدول‌ها از پوشه puzzles
-import indexData from "./puzzles/index.json" with { type: "json" };
-import p001 from "./puzzles/puzzle_001.json" with { type: "json" };
-import p002 from "./puzzles/puzzle_002.json" with { type: "json" };
-import p003 from "./puzzles/puzzle_003.json" with { type: "json" };
-import p004 from "./puzzles/puzzle_004.json" with { type: "json" };
-import p005 from "./puzzles/puzzle_005.json" with { type: "json" };
-import p006 from "./puzzles/puzzle_006.json" with { type: "json" };
-import p007 from "./puzzles/puzzle_007.json" with { type: "json" };
-import p008 from "./puzzles/puzzle_008.json" with { type: "json" };
-import p009 from "./puzzles/puzzle_009.json" with { type: "json" };
-import p010 from "./puzzles/puzzle_010.json" with { type: "json" };
-
 export class Storage {
   constructor(kv) {
     this.kv = kv;
@@ -45,20 +31,23 @@ export class Storage {
   }
 
   /**
-   * شارژ بانک اطلاعاتی با فایل‌های واقعی گیت‌هاب
+   * لیست آیدی ۱۰ جدول موجود در پوشه puzzles
    */
   async seedInitialPuzzles() {
-    const bank = [p001, p002, p003, p004, p005, p006, p007, p008, p009, p010];
+    const puzzleIds = [
+      "puzzle_001",
+      "puzzle_002",
+      "puzzle_003",
+      "puzzle_004",
+      "puzzle_005",
+      "puzzle_006",
+      "puzzle_007",
+      "puzzle_008",
+      "puzzle_009",
+      "puzzle_010"
+    ];
 
-    // لیست آیدی‌ها از index.json یا آیدی فایل‌ها خوانده می‌شود
-    const puzzleIds = Array.isArray(indexData) ? indexData : bank.map((p) => p.id);
-    
     await this.setJson(Storage.KEY_PUZZLE_INDEX, puzzleIds);
-
-    for (const puzzle of bank) {
-      await this.setJson(Storage.KEY_PUZZLE(puzzle.id), puzzle);
-    }
-
     return puzzleIds;
   }
 
