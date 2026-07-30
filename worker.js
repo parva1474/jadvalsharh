@@ -61,8 +61,23 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
         break;
 
       case "/new":
-        await handleNewPuzzleCommand(chatId, userId, telegram, storage, env);
-        break;
+  // موقتا چک کردن ادمین را برمی‌داریم تا تست کنیم
+  let allPuzzleIds = await storage.getAllPuzzleIds();
+  if (allPuzzleIds.length === 0) {
+    await telegram.sendMessage(chatId, "❌ هیچ جدولی پیدا نشد.");
+    return;
+  }
+  
+  let selectedPuzzleId = allPuzzleIds[0];
+  let puzzle = await storage.getPuzzle(selectedPuzzleId);
+  
+  if (!puzzle) {
+    await telegram.sendMessage(chatId, "❌ خطایی در دریافت اطلاعات جدول رخ داد.");
+    return;
+  }
+
+  await telegram.sendMessage(chatId, `🎉 جدول پیدا شد! آیدی: ${puzzle.id}`);
+  break;
 
       case "/rank":
         await handleRankCommand(chatId, telegram, storage);
