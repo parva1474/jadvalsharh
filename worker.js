@@ -58,6 +58,12 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
         await telegram.sendMessage(chatId, "سلام! به ربات جدول کلمات متقاطع خوش آمدید.\nبرای ایجاد جدول در گروه از دستور /new استفاده کنید.");
         break;
 
+              case "/reload":
+        await storage.seedInitialPuzzles();
+        await storage.deleteGroupState(chatId);
+        await telegram.sendMessage(chatId, "🔄 بانک اطلاعاتی جدول‌ها و index.json بازنشانی شد!");
+        break;
+        
       case "/new":
         await handleNewPuzzleCommand(chatId, userId, telegram, storage, env);
         break;
