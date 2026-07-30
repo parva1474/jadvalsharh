@@ -60,10 +60,60 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
       case "/start":
         await telegram.sendMessage(chatId, "سلام! به ربات جدول کلمات متقاطع خوش آمدید.\nبرای ایجاد جدول در گروه از دستور /new استفاده کنید.");
         break;
+/**
+ * ایجاد جدول جدید در گروه (/new) - بدون محدودیت ادمین
+ */
+async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
+  try {
+    // ۱. پاکسازی هرگونه وضعیت خراب قبلی
+    let currentState = await storage.getGroupState(chatId);
+    if (currentState && !currentState.isCompleted) {
+      await storage.deleteGroupState(chatId);
+    }
 
-      case "/new":
-        await handleNewPuzzleCommand(chatId, userId, telegram, storage, env);
-        break;
+    // ۲. دریافت لیست جدول‌ها
+    const allPuzzleIds = await storage.getAllPuzzleIds();
+    if (!allPuzzleIds || allPuzzleIds.length === 0) {
+      await telegram.sendMessage(chatId, "❌ هیچ جدولی در دیتابیس (puzzles:index) پیدا نشد.");
+      return;
+    }
+
+    // ۳. انتخاب جدول
+    const selectedPuzzleId = getRandomElement(allPuzzleIds);
+    const puzzle = await storage.getPuzzle(selectedPuzzleId);
+
+    if (!puzzle) {
+      await telegram.sendMessage(chatId, `❌ فایل جدول ${selectedPuzzleId} در KV یافت نشد.`);
+      return;
+    }
+
+    // ۴. ساخت وضعیت جدید
+    const newState = {
+      puzzleId: puzzle.id,
+      solvedWordIds: [],
+      userActiveQuestion: {},
+      activeQuestionUsers: {},
+      startTime: Date.now(),
+      lastAutoSolveTime: Date.now(),
+      isCompleted: false,
+      messageId: null
+    };
+
+    // ۵. رندر و ارسال پیام
+    const tableText = CrosswordEngine.renderTable(puzzle, []);
+    const questionsText = CrosswordEngine.renderQuestions(puzzle, []);
+    const fullText = tableText + questionsText;
+    const keyboard = buildInlineKeyboard(puzzle, []);
+
+    const sentMsg = await telegram.sendMessage(chatId, fullText, keyboard);
+    if (sentMsg && sentMsg.result) {
+      newState.messageId = sentMsg.result.message_id;
+      await storage.saveGroupState(chatId, newState);
+    }
+  } catch (err) {
+    await telegram.sendMessage(chatId, `💥 خطای غیرمنتظره در ساخت جدول:\n${err.message}`);
+  }
+}break;
 
       case "/rank":
         await handleRankCommand(chatId, telegram, storage);
