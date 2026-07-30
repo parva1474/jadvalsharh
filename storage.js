@@ -1,6 +1,3 @@
-/**
- * مدیریت بانک جدول‌ها و ذخیره‌سازی Cloudflare KV
- */
 export class Storage {
   constructor(kv) {
     this.kv = kv;
@@ -11,12 +8,8 @@ export class Storage {
   static KEY_GROUP_STATE = (chatId) => `group_state:${chatId}`;
   static KEY_GROUP_STATS = (chatId) => `group_stats:${chatId}`;
 
-  // لینک بیس فایل‌های ریپازیتوری شما در گیت‌هاب
   static GITHUB_RAW_BASE = "https://raw.githubusercontent.com/parva1474/jadvalsharh/main/puzzles";
 
-  /**
-   * دریافت تمام آیدی‌های جدول از puzzles:index
-   */
   async getAllPuzzleIds() {
     let ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -25,17 +18,12 @@ export class Storage {
     return ids || [];
   }
 
-  /**
-   * دریافت یک جدول مشخص با آیدی آن
-   */
   async getPuzzle(puzzleId) {
     const cleanId = puzzleId.replace("puzzle:", "");
     const key = Storage.KEY_PUZZLE(cleanId);
     
-    // ابتدا از KV خوانده می‌شود
     let puzzle = await this.getJson(key);
     
-    // اگر در KV نبود، مستقیماً از فایل JSON گیت‌هاب دانلود و در KV ذخیره می‌شود
     if (!puzzle) {
       try {
         const response = await fetch(`${Storage.GITHUB_RAW_BASE}/${cleanId}.json`);
@@ -44,16 +32,13 @@ export class Storage {
           await this.setJson(key, puzzle);
         }
       } catch (err) {
-        console.error(`Error fetching ${cleanId}.json from GitHub:`, err);
+        console.error(`Error fetching ${cleanId}.json:`, err);
       }
     }
     
     return puzzle;
   }
 
-  /**
-   * ساخت ایندکس ۱۰ جدول موجود در ریپازیتوری
-   */
   async seedInitialPuzzles() {
     const puzzleIds = [
       "puzzle_001",
