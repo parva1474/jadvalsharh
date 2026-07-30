@@ -11,3 +11,9 @@ kv_namespaces = [
 [vars]
 TELEGRAM_BOT_TOKEN = "8595424524:AAFf0l80Sl0zZzY-gNNf4fZUcjlnJ5pK1a8"
 ADMIN_USER_ID = "109710949"
+
+# 👈 این بخش جدید برای پشتیبانی از Import کردن فایل‌های JSON اضافه شد
+[[rules]]
+type = "Data"
+globs = ["**/*.json"]
+fallthrough = true
