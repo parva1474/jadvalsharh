@@ -1,6 +1,20 @@
 /**
  * مدیریت بانک جدول‌ها و ذخیره‌سازی Cloudflare KV
  */
+
+// وارد کردن فایل‌های JSON جدول‌ها از پوشه puzzles
+import indexData from "./puzzles/index.json" with { type: "json" };
+import p001 from "./puzzles/puzzle_001.json" with { type: "json" };
+import p002 from "./puzzles/puzzle_002.json" with { type: "json" };
+import p003 from "./puzzles/puzzle_003.json" with { type: "json" };
+import p004 from "./puzzles/puzzle_004.json" with { type: "json" };
+import p005 from "./puzzles/puzzle_005.json" with { type: "json" };
+import p006 from "./puzzles/puzzle_006.json" with { type: "json" };
+import p007 from "./puzzles/puzzle_007.json" with { type: "json" };
+import p008 from "./puzzles/puzzle_008.json" with { type: "json" };
+import p009 from "./puzzles/puzzle_009.json" with { type: "json" };
+import p010 from "./puzzles/puzzle_010.json" with { type: "json" };
+
 export class Storage {
   constructor(kv) {
     this.kv = kv;
@@ -17,65 +31,28 @@ export class Storage {
   async getAllPuzzleIds() {
     let ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      // ساخت و شارژ اولیه index در صورت خالی بودن
       ids = await this.seedInitialPuzzles();
     }
     return ids || [];
   }
 
   /**
-   * دریافت یک جدول مشخص با آیدی آن (مثلاً puzzle:p1)
+   * دریافت یک جدول مشخص با آیدی آن
    */
   async getPuzzle(puzzleId) {
-    // اگر آیدی پیش‌وند puzzle: نداشت، اضافه می‌شود
     const key = puzzleId.startsWith("puzzle:") ? puzzleId : Storage.KEY_PUZZLE(puzzleId);
     return await this.getJson(key);
   }
 
   /**
-   * شارژ بانک اطلاعاتی جدول‌ها
+   * شارژ بانک اطلاعاتی با فایل‌های واقعی گیت‌هاب
    */
   async seedInitialPuzzles() {
-    const bank = [
-      {
-        id: "p1",
-        width: 4,
-        height: 4,
-        words: [
-          { id: 1, question: "پایتخت ایران", answer: "تهران", row: 0, col: 0, direction: "across" },
-          { id: 2, question: "سیاره سرخ", answer: "مریخ", row: 1, col: 0, direction: "across" }
-        ]
-      },
-      {
-        id: "p2",
-        width: 4,
-        height: 4,
-        words: [
-          { id: 1, question: "مرکز فرانسه", answer: "پاریس", row: 0, col: 0, direction: "across" },
-          { id: 2, question: "قله بلند ایران", answer: "دماوند", row: 1, col: 0, direction: "across" }
-        ]
-      },
-      {
-        id: "p3",
-        width: 4,
-        height: 4,
-        words: [
-          { id: 1, question: "شاعر گلستان", answer: "سعدی", row: 0, col: 0, direction: "across" },
-          { id: 2, question: "اقیانوس بزرگ", answer: "آرام", row: 1, col: 0, direction: "across" }
-        ]
-      },
-      {
-        id: "p4",
-        width: 4,
-        height: 4,
-        words: [
-          { id: 1, question: "فلز گرانبها", answer: "طلا", row: 0, col: 0, direction: "across" },
-          { id: 2, question: "پایتخت ژاپن", answer: "توکیو", row: 1, col: 0, direction: "across" }
-        ]
-      }
-    ];
+    const bank = [p001, p002, p003, p004, p005, p006, p007, p008, p009, p010];
 
-    const puzzleIds = bank.map((p) => p.id);
+    // لیست آیدی‌ها از index.json یا آیدی فایل‌ها خوانده می‌شود
+    const puzzleIds = Array.isArray(indexData) ? indexData : bank.map((p) => p.id);
+    
     await this.setJson(Storage.KEY_PUZZLE_INDEX, puzzleIds);
 
     for (const puzzle of bank) {
