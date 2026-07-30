@@ -65,9 +65,76 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
         break;
 
       case "/new":
-        await handleNewPuzzleCommand(chatId, userId, telegram, storage, env);
-        break;
+/**
+ * ایجاد جدول جدید با الگوریتم شارژ خودکار و عدم تکرار
+ */
+async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
+  try {
+    await storage.deleteGroupState(chatId);
 
+    // ۱. دریافت آیدی‌ها (اگر خالی بود، خودش خودکار شارژ می‌کنه)
+    let allPuzzleIds = await storage.getAllPuzzleIds();
+    
+    // پشتیبان: اگر باز هم خالی بود، مستقیماً شارژ اولیه انجام بده
+    if (!allPuzzleIds || allPuzzleIds.length === 0) {
+      allPuzzleIds = await storage.seedInitialPuzzles();
+    }
+
+    if (!allPuzzleIds || allPuzzleIds.length === 0) {
+      await telegram.sendMessage(chatId, "❌ خطا: اتصال به بانک جدول‌ها برقرار نشد.");
+      return;
+    }
+
+    // ۲. دریافت آمار جدول‌های بازی شده
+    let groupStats = (await storage.getJson(Storage.KEY_GROUP_STATS(chatId))) || {};
+    let playedIds = groupStats.playedPuzzleIds || [];
+
+    // ۳. پیدا کردن جدول‌های غیرتکراری
+    let availableIds = allPuzzleIds.filter((id) => !playedIds.includes(id));
+
+    if (availableIds.length === 0) {
+      playedIds = [];
+      availableIds = allPuzzleIds;
+    }
+
+    // ۴. انتخاب تصادفی
+    const selectedPuzzleId = getRandomElement(availableIds);
+    const puzzle = await storage.getPuzzle(selectedPuzzleId);
+
+    if (!puzzle) {
+      await telegram.sendMessage(chatId, `❌ دریافت فایل جدول ${selectedPuzzleId} ناموفق بود.`);
+      return;
+    }
+
+    // ۵. ثبت و ذخیره
+    playedIds.push(selectedPuzzleId);
+    groupStats.playedPuzzleIds = playedIds;
+    await storage.setJson(Storage.KEY_GROUP_STATS(chatId), groupStats);
+
+    const newState = {
+      puzzleId: puzzle.id || selectedPuzzleId,
+      solvedWordIds: [],
+      userActiveQuestion: {},
+      startTime: Date.now(),
+      isCompleted: false,
+      messageId: null
+    };
+
+    const tableText = CrosswordEngine.renderTable(puzzle, []);
+    const questionsText = CrosswordEngine.renderQuestions(puzzle, []);
+    const fullText = tableText + questionsText;
+    const keyboard = buildInlineKeyboard(puzzle, []);
+
+    const sentMsg = await telegram.sendMessage(chatId, fullText, keyboard);
+    if (sentMsg && sentMsg.result) {
+      newState.messageId = sentMsg.result.message_id;
+      await storage.saveGroupState(chatId, newState);
+    }
+  } catch (err) {
+    await telegram.sendMessage(chatId, `💥 خطا در دریافت جدول:\n${err.message}`);
+  }
+}
+        
       case "/rank":
         await handleRankCommand(chatId, telegram, storage);
         break;
