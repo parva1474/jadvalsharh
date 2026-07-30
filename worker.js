@@ -156,20 +156,70 @@ async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
   // ۳. پردازش متن جواب ارسال شده توسط کاربر
   await handleUserAnswerInput(chatId, message, telegram, storage);
 }
-
-/**
- * ایجاد جدول جدید با الگوریتم عدم تکرار و اتصال به بانک جدول
- */
 async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
   try {
     await storage.deleteGroupState(chatId);
 
-    // ۱. دریافت کل آیدی‌های موجود در بانک جدول
-    const allPuzzleIds = await storage.getAllPuzzleIds();
-    if (!allPuzzleIds || allPuzzleIds.length === 0) {
-      await telegram.sendMessage(chatId, "❌ هیچ جدولی در بانک اطلاعاتی یافت نشد.");
+    // ۱. دریافت آیدی‌ها از storage
+    let allPuzzleIds = await storage.getAllPuzzleIds();
+
+    // پشتیبان سخت‌گیرانه: اگر به هر دلیلی خالی بود، آرایه لیست ثابت را جایگزین کن
+    if (!allPuzzleIds || !Array.isArray(allPuzzleIds) || allPuzzleIds.length === 0) {
+      allPuzzleIds = [
+        "puzzle_001", "puzzle_002", "puzzle_003", "puzzle_004", "puzzle_005",
+        "puzzle_006", "puzzle_007", "puzzle_008", "puzzle_009", "puzzle_010"
+      ];
+    }
+
+    // ۲. دریافت آمار بازی
+    let groupStats = (await storage.getJson(Storage.KEY_GROUP_STATS(chatId))) || {};
+    let playedIds = groupStats.playedPuzzleIds || [];
+
+    // ۳. فیلتر جدول‌های جدید
+    let availableIds = allPuzzleIds.filter((id) => !playedIds.includes(id));
+
+    if (availableIds.length === 0) {
+      playedIds = [];
+      availableIds = allPuzzleIds;
+    }
+
+    // ۴. انتخاب تصادفی
+    const selectedPuzzleId = getRandomElement(availableIds);
+    const puzzle = await storage.getPuzzle(selectedPuzzleId);
+
+    if (!puzzle) {
+      await telegram.sendMessage(chatId, `❌ خطا در دانلود فایل ${selectedPuzzleId}.json از گیت‌هاب.`);
       return;
     }
+
+    // ۵. ذخیره و ثبت
+    playedIds.push(selectedPuzzleId);
+    groupStats.playedPuzzleIds = playedIds;
+    await storage.setJson(Storage.KEY_GROUP_STATS(chatId), groupStats);
+
+    const newState = {
+      puzzleId: puzzle.id || selectedPuzzleId,
+      solvedWordIds: [],
+      userActiveQuestion: {},
+      startTime: Date.now(),
+      isCompleted: false,
+      messageId: null
+    };
+
+    const tableText = CrosswordEngine.renderTable(puzzle, []);
+    const questionsText = CrosswordEngine.renderQuestions(puzzle, []);
+    const fullText = tableText + questionsText;
+    const keyboard = buildInlineKeyboard(puzzle, []);
+
+    const sentMsg = await telegram.sendMessage(chatId, fullText, keyboard);
+    if (sentMsg && sentMsg.result) {
+      newState.messageId = sentMsg.result.message_id;
+      await storage.saveGroupState(chatId, newState);
+    }
+  } catch (err) {
+    await telegram.sendMessage(chatId, `💥 خطای غیرمنتظره:\n${err.message}`);
+  }
+}
 
     // ۲. دریافت لیست جدول‌های بازی‌شده در این گروه
     let groupStats = (await storage.getJson(Storage.KEY_GROUP_STATS(chatId))) || {};
