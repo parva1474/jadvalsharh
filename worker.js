@@ -92,7 +92,49 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
     await telegram.sendMessage(chatId, `💥 خطای کد:\n${err.message}\n\nدر خط:\n${err.stack}`);
   }
 }
+      case "/new":
+        try {
+          // ۱. پاکسازی وضعیت قبلی این گروه جهت رفع هرگونه دیتای خراب
+          await storage.deleteGroupState(chatId);
 
+          // ۲. گرفتن لیست جدول‌ها
+          const allPuzzleIds = await storage.getAllPuzzleIds();
+          if (!allPuzzleIds || allPuzzleIds.length === 0) {
+            await telegram.sendMessage(chatId, "❌ هیچ جدولی در دیتابیس (puzzles:index) ثبت نشده است.");
+            return;
+          }
+
+          // ۳. خواندن اولین جدول
+          const puzzle = await storage.getPuzzle(allPuzzleIds[0]);
+          if (!puzzle) {
+            await telegram.sendMessage(chatId, `❌ جدول ${allPuzzleIds[0]} در KV پیدا نشد.`);
+            return;
+          }
+
+          // ۴. ساخت متن و کیبورد
+          const tableText = CrosswordEngine.renderTable(puzzle, []);
+          const questionsText = CrosswordEngine.renderQuestions(puzzle, []);
+          const fullText = tableText + questionsText;
+          const keyboard = buildInlineKeyboard(puzzle, []);
+
+          // ۵. ارسال پیام به گروه
+          const sentMsg = await telegram.sendMessage(chatId, fullText, keyboard);
+          
+          if (sentMsg && sentMsg.result) {
+            await storage.saveGroupState(chatId, {
+              puzzleId: puzzle.id,
+              solvedWordIds: [],
+              userActiveQuestion: {},
+              startTime: Date.now(),
+              isCompleted: false,
+              messageId: sentMsg.result.message_id
+            });
+          }
+        } catch (err) {
+          // ارسال متن دقیق خطا در صورت وجود مشکل در CrosswordEngine
+          await telegram.sendMessage(chatId, `❌ خطای ناگهانی:\n${err.message}`);
+        }
+        break;
       case "/rank":
         await handleRankCommand(chatId, telegram, storage);
         break;
