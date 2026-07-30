@@ -1,3 +1,6 @@
+/**
+ * مدیریت بانک جدول‌ها و ذخیره‌سازی Cloudflare KV
+ */
 export class Storage {
   constructor(kv) {
     this.kv = kv;
@@ -10,20 +13,45 @@ export class Storage {
 
   static GITHUB_RAW_BASE = "https://raw.githubusercontent.com/parva1474/jadvalsharh/main/puzzles";
 
+  /**
+   * لیست ۱۰ جدول استاندارد شما در گیت‌هاب
+   */
+  static DEFAULT_PUZZLES = [
+    "puzzle_001",
+    "puzzle_002",
+    "puzzle_003",
+    "puzzle_004",
+    "puzzle_005",
+    "puzzle_006",
+    "puzzle_007",
+    "puzzle_008",
+    "puzzle_009",
+    "puzzle_010"
+  ];
+
+  /**
+   * دریافت تمام آیدی‌های جدول از puzzles:index
+   * (اگر خالی باشد، اتوماتیک ۱۰ جدول را ست می‌کند)
+   */
   async getAllPuzzleIds() {
     let ids = await this.getJson(Storage.KEY_PUZZLE_INDEX);
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       ids = await this.seedInitialPuzzles();
     }
-    return ids || [];
+    return ids;
   }
 
+  /**
+   * دریافت یک جدول مشخص با آیدی آن
+   */
   async getPuzzle(puzzleId) {
     const cleanId = puzzleId.replace("puzzle:", "");
     const key = Storage.KEY_PUZZLE(cleanId);
     
+    // ۱. ابتدا از KV خوانده می‌شود
     let puzzle = await this.getJson(key);
     
+    // ۲. اگر در KV نبود، مستقیماً از فایل JSON گیت‌هاب دانلود و ذخیره می‌شود
     if (!puzzle) {
       try {
         const response = await fetch(`${Storage.GITHUB_RAW_BASE}/${cleanId}.json`);
@@ -32,27 +60,18 @@ export class Storage {
           await this.setJson(key, puzzle);
         }
       } catch (err) {
-        console.error(`Error fetching ${cleanId}.json:`, err);
+        console.error(`Error fetching ${cleanId}.json from GitHub:`, err);
       }
     }
     
     return puzzle;
   }
 
+  /**
+   * ساخت ایندکس ۱۰ جدول موجود در ریپازیتوری
+   */
   async seedInitialPuzzles() {
-    const puzzleIds = [
-      "puzzle_001",
-      "puzzle_002",
-      "puzzle_003",
-      "puzzle_004",
-      "puzzle_005",
-      "puzzle_006",
-      "puzzle_007",
-      "puzzle_008",
-      "puzzle_009",
-      "puzzle_010"
-    ];
-
+    const puzzleIds = Storage.DEFAULT_PUZZLES;
     await this.setJson(Storage.KEY_PUZZLE_INDEX, puzzleIds);
     return puzzleIds;
   }
@@ -70,11 +89,19 @@ export class Storage {
   }
 
   async getJson(key) {
-    const val = await this.kv.get(key);
-    return val ? JSON.parse(val) : null;
+    try {
+      const val = await this.kv.get(key);
+      return val ? JSON.parse(val) : null;
+    } catch (e) {
+      return null;
+    }
   }
 
   async setJson(key, value) {
-    await this.kv.put(key, JSON.stringify(value));
+    try {
+      await this.kv.put(key, JSON.stringify(value));
+    } catch (e) {
+      console.error("KV Put Error:", e);
+    }
   }
 }
