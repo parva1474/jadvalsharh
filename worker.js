@@ -62,9 +62,36 @@ async function handleTelegramUpdate(update, telegram, storage, env) {
         await telegram.sendMessage(chatId, "سلام! به ربات جدول کلمات متقاطع خوش آمدید.\nبرای ایجاد جدول در گروه از دستور /new استفاده کنید.");
         break;
 
-      case "/new":
-        await handleNewPuzzleCommand(chatId, userId, telegram, storage, env);
-        break;
+      async function handleNewPuzzleCommand(chatId, userId, telegram, storage, env) {
+  try {
+    // ۱. دریافت لیست آیدی‌ها
+    const allPuzzleIds = await storage.getAllPuzzleIds();
+    if (!allPuzzleIds || allPuzzleIds.length === 0) {
+      await telegram.sendMessage(chatId, "❌ لیست جدول‌ها خالی است یا کلید puzzles:index پیدا نشد.");
+      return;
+    }
+
+    // ۲. دریافت اطلاعات اولین جدول
+    const puzzle = await storage.getPuzzle(allPuzzleIds[0]);
+    if (!puzzle) {
+      await telegram.sendMessage(chatId, `❌ جدول با آیدی ${allPuzzleIds[0]} در KV پیدا نشد.`);
+      return;
+    }
+
+    // ۳. رندر متن و کیبورد
+    const tableText = CrosswordEngine.renderTable(puzzle, []);
+    const questionsText = CrosswordEngine.renderQuestions(puzzle, []);
+    const fullText = tableText + questionsText;
+    const keyboard = buildInlineKeyboard(puzzle, []);
+
+    // ۴. ارسال پیام
+    await telegram.sendMessage(chatId, fullText, keyboard);
+
+  } catch (err) {
+    // اگر هر خطایی در هر خط رخ داد، دقیقا متن خطا رو بفرست توی گروه
+    await telegram.sendMessage(chatId, `💥 خطای کد:\n${err.message}\n\nدر خط:\n${err.stack}`);
+  }
+}
 
       case "/rank":
         await handleRankCommand(chatId, telegram, storage);
