@@ -1,6 +1,7 @@
 // ==========================================
-// ۱. تنظیمات کانال و دیتابیس کلمات
+// ۱. تنظیمات اولیه و توکن‌ها
 // ==========================================
+const DEFAULT_BOT_TOKEN = "8595424524:AAEWYrIAzj6RRE7_G-5zY33333333333333"; // توکن ربات
 const CHANNEL_USERNAME = "@parvapoem";
 const CHANNEL_LINK = "https://t.me/parvapoem";
 
@@ -118,7 +119,7 @@ class TelegramAPI {
 }
 
 // ==========================================
-// ۳. موتور بازی و جدول
+// ۳. موتور ساخت و رندر جدول
 // ==========================================
 class PuzzleEngine {
   static generate() {
@@ -155,7 +156,7 @@ class PuzzleEngine {
               length: item.word.length,
               answer: item.word,
               clue: item.clue,
-              hint2: item.hint2 || "راهنمایی متنی دیگری برای این سوال وجود ندارد."
+              hint2: item.hint2 || "راهنمایی متنی دیگری وجود ندارد."
             });
           }
           currentLen = 0;
@@ -181,7 +182,7 @@ class PuzzleEngine {
               length: item.word.length,
               answer: item.word,
               clue: item.clue,
-              hint2: item.hint2 || "راهنمایی متنی دیگری برای این سوال وجود ندارد."
+              hint2: item.hint2 || "راهنمایی متنی دیگری وجود ندارد."
             });
           }
           currentLen = 0;
@@ -269,9 +270,10 @@ class PuzzleEngine {
 }
 
 // ==========================================
-// ۴. مدیریت کاربر، ۵۰ سکه اولیه و امتیازات
+// ۴. مدیریت کاربر و سکه‌ها
 // ==========================================
 async function getUserData(kv, userId, name) {
+  if (!kv) return { id: userId, name: name || "بازیکن", credits: 50, score: 0 };
   const raw = await kv.get(`user:${userId}`);
   if (raw) return JSON.parse(raw);
   const newUser = { id: userId, name: name || "بازیکن", credits: 50, score: 0 };
@@ -284,18 +286,18 @@ async function updateUserScoreAndCredits(kv, userId, name, creditsDelta, scoreDe
   user.name = name || user.name;
   user.credits = Math.max(0, user.credits + creditsDelta);
   user.score += scoreDelta;
-  await kv.put(`user:${userId}`, JSON.stringify(user));
+  if (kv) await kv.put(`user:${userId}`, JSON.stringify(user));
   return user;
 }
 
 // ==========================================
-// ۵. ساخت کیبوردها
+// ۵. ساخت دکمه‌ها (راهنما، عضویت، پروفایل)
 // ==========================================
 function getJoinKeyboard() {
   return {
     inline_keyboard: [
       [{ text: "📢 جهت بازی عضو کانال شوید", url: CHANNEL_LINK }],
-      [{ text: "✅ عضو شدم (بررسی)", callback_data: "check_membership" }]
+      [{ text: "✅ عضو شدم (بررسی مجدد)", callback_data: "check_membership" }]
     ]
   };
 }
@@ -325,7 +327,7 @@ function buildMainKeyboard(puzzle, solvedWordIds) {
   }
   keyboard.push(downRow);
   
-  // دکمه‌های راهنما، پروفایل، لیدربورد و خرید سکه
+  // دکمه‌های جدید اضافه شده:
   keyboard.push([
     { text: "🏆 امتیازات گروه", callback_data: "show_top" },
     { text: "👤 پروفایل من", callback_data: "show_profile" }
@@ -350,14 +352,14 @@ function buildHintKeyboard(wordId) {
 }
 
 // ==========================================
-// ۶. هندلرهای اصلی
+// ۶. نقطه ورود Worker
 // ==========================================
 export default {
   async fetch(request, env, ctx) {
     if (request.method !== "POST") return new Response("OK", { status: 200 });
-    const token = env.TELEGRAM_BOT_TOKEN;
-    if (!token) return new Response("Token Missing", { status: 500 });
-
+    
+    // حل مشکل توکن ربات
+    const token = env.TELEGRAM_BOT_TOKEN || DEFAULT_BOT_TOKEN;
     const telegram = new TelegramAPI(token);
     const kv = env.CROSSWORD_KV;
 
@@ -381,12 +383,12 @@ async function handleMessage(message, telegram, kv, ctx) {
   const userName = message.from.first_name || "بازیکن";
   const text = message.text.trim();
 
-  // ساخت یا دریافت پروفایل پیش‌فرض ۵۰ سکه‌ای کاربر
   let user = await getUserData(kv, userId, userName);
 
+  // بررسی عضویت در کانال
   const isMember = await telegram.checkChannelMember(userId);
   if (!isMember) {
-    await telegram.sendMessage(chatId, `⚠️ <b>برای شرکت در بازی باید ابتدا عضو کانال شوید:</b>`, getJoinKeyboard());
+    await telegram.sendMessage(chatId, `⚠️ <b>برای بازی در جدول باید ابتدا عضو کانال شوید:</b>`, getJoinKeyboard());
     return;
   }
 
@@ -412,8 +414,10 @@ async function handleMessage(message, telegram, kv, ctx) {
       const sent = await telegram.sendMessage(chatId, tableText + qText, keyboard);
       if (sent && sent.result) {
         state.messageId = sent.result.message_id;
-        await kv.put(`puzzle:${chatId}`, JSON.stringify(puzzle));
-        await kv.put(`state:${chatId}`, JSON.stringify(state));
+        if (kv) {
+          await kv.put(`puzzle:${chatId}`, JSON.stringify(puzzle));
+          await kv.put(`state:${chatId}`, JSON.stringify(state));
+        }
       }
       return;
     }
@@ -429,11 +433,12 @@ async function handleMessage(message, telegram, kv, ctx) {
     }
 
     if (command === "/profile") {
-      await telegram.sendMessage(chatId, `👤 <b>پروفایل شما:</b>\n💰 سکه: <b>${toPersianDigits(user.credits)}</b>\n⭐ امتیاز شما: <b>${toPersianDigits(user.score)}</b>`);
+      await telegram.sendMessage(chatId, `👤 <b>پروفایل شما:</b>\n💰 موجودی سکه: <b>${toPersianDigits(user.credits)}</b>\n⭐ امتیاز: <b>${toPersianDigits(user.score)}</b>`);
       return;
     }
   }
 
+  if (!kv) return;
   const rawState = await kv.get(`state:${chatId}`);
   if (!rawState) return;
   const state = JSON.parse(rawState);
@@ -457,11 +462,8 @@ async function handleMessage(message, telegram, kv, ctx) {
   if (text.replace(/\s+/g, "") === word.answer) {
     if (!state.solvedWordIds.includes(word.id)) {
       state.solvedWordIds.push(word.id);
-      
-      // امتیازدهی: هر حرف پاسخ درست = ۱ امتیاز
       const points = word.answer.length;
       user = await updateUserScoreAndCredits(kv, userId, userName, 0, points);
-
       if (!state.players.includes(userId)) state.players.push(userId);
     }
 
@@ -497,7 +499,7 @@ async function handleCallback(cb, telegram, kv, ctx) {
   if (data === "check_membership") {
     const isMember = await telegram.checkChannelMember(userId);
     if (isMember) {
-      await telegram.answerCallbackQuery(cb.id, "✅ عضویت شما تایید شد! می‌توانید بازی کنید.", true);
+      await telegram.answerCallbackQuery(cb.id, "✅ عضویت شما تایید شد!", true);
       await telegram.deleteMessage(chatId, cb.message.message_id);
     } else {
       await telegram.answerCallbackQuery(cb.id, "❌ شما هنوز عضو کانال نشده‌اید!", true);
@@ -507,13 +509,13 @@ async function handleCallback(cb, telegram, kv, ctx) {
 
   const isMember = await telegram.checkChannelMember(userId);
   if (!isMember) {
-    await telegram.answerCallbackQuery(cb.id, "⚠️ جهت ادامه بازی ابتدا باید عضو کانال شوید!", true);
+    await telegram.answerCallbackQuery(cb.id, "⚠️ جهت ادامه ابتدا باید عضو کانال شوید!", true);
     await telegram.sendMessage(chatId, `⚠️ <b>جهت استفاده از ربات باید عضو کانال شوید:</b>`, getJoinKeyboard());
     return;
   }
 
   if (data === "buy_credits") {
-    await telegram.answerCallbackQuery(cb.id, `💰 سکه فعلی شما: ${toPersianDigits(user.credits)}\nبرای خرید سکه بیشتر به آیدی پشتیبانی پیام دهید.`, true);
+    await telegram.answerCallbackQuery(cb.id, `💰 سکه فعلی شما: ${toPersianDigits(user.credits)}\nجهت خرید سکه به پشتیبانی پیام دهید.`, true);
     return;
   }
 
@@ -534,6 +536,7 @@ async function handleCallback(cb, telegram, kv, ctx) {
     return;
   }
 
+  if (!kv) return;
   const rawState = await kv.get(`state:${chatId}`);
   if (!rawState) return;
   const state = JSON.parse(rawState);
@@ -552,6 +555,4 @@ async function handleCallback(cb, telegram, kv, ctx) {
   }
 
   if (data.startsWith("nav_across_") || data.startsWith("nav_down_")) {
-    const isAcross = data.startsWith("nav_across_");
-    const index = parseInt(data.split("_")[2]);
-    
+    const isAcross = data.sta
