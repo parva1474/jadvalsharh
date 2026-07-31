@@ -220,7 +220,7 @@ class PuzzleEngine {
     for (let r = 0; r < puzzle.rows; r++) {
       for (let c = 0; c < puzzle.cols; c++) {
         if (matrix[r][c]) {
-          gridDisplay[r][c] = matrix[r][c] + "\u200C"; 
+          gridDisplay[r][c] = matrix[r][c] + " "; 
         }
       }
     }
@@ -228,7 +228,8 @@ class PuzzleEngine {
     let tableStr = `<pre>`;
     tableStr += [...NUM_EMOJIS].reverse().join("") + "\n";
     for (let r = 0; r < puzzle.rows; r++) {
-      tableStr += gridDisplay[r].join("") + NUM_EMOJIS[r] + "\n";
+      const rowContent = gridDisplay[r].map(cell => cell.length === 1 ? cell + " " : cell).join("");
+      tableStr += rowContent + NUM_EMOJIS[r] + "\n";
     }
     tableStr += `</pre>\n`;
     return tableStr;
@@ -465,18 +466,29 @@ async function handleMessage(message, telegram, kv, ctx) {
     }
 
     delete state.activeQuestion[userId];
-    await kv.put(`state:${chatId}`, JSON.stringify(state));
 
-    const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds, state.revealedCells);
-    const qText = PuzzleEngine.renderQuestions(puzzle);
-    const keyboard = buildMainKeyboard(puzzle, state.solvedWordIds);
+    // ۱. پاک کردن پیام جدول قبلی جهت ارسال مجدد آن به عنوان آخرین پیام
+    if (state.messageId) {
+      await telegram.deleteMessage(chatId, state.messageId);
+    }
 
-    await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
-
+    // ۲. ارسال پیام اعلان تبریک
     const feedback = await telegram.sendMessage(chatId, `✅ <b>${userName}</b> پاسخ درست داد! (+${toPersianDigits(word.answer.length)} امتیاز)`);
     if (feedback && feedback.result) {
       ctx.waitUntil(new Promise(r => setTimeout(r, 4000)).then(() => telegram.deleteMessage(chatId, feedback.result.message_id)));
     }
+
+    // ۳. ارسال مجدد جدول به‌روزرسانی شده در پایین‌ترین بخش چت
+    const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds, state.revealedCells);
+    const qText = PuzzleEngine.renderQuestions(puzzle);
+    const keyboard = buildMainKeyboard(puzzle, state.solvedWordIds);
+
+    const newTableMsg = await telegram.sendMessage(chatId, tableText + qText, keyboard);
+    if (newTableMsg && newTableMsg.result) {
+      state.messageId = newTableMsg.result.message_id;
+    }
+
+    await kv.put(`state:${chatId}`, JSON.stringify(state));
   } else {
     const wrongMsg = await telegram.sendMessage(chatId, `❌ پاسخ <b>${userName}</b> اشتباه بود!`);
     if (wrongMsg && wrongMsg.result) {
@@ -544,171 +556,4 @@ async function handleCallback(cb, telegram, kv, ctx) {
 
   if (data === "nav_back") {
     const keyboard = buildMainKeyboard(puzzle, state.solvedWordIds);
-    const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds, state.revealedCells);
-    const qText = PuzzleEngine.renderQuestions(puzzle);
-    await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
-    await telegram.answerCallbackQuery(cb.id);
-    return;
-  }
-
-  if (data.startsWith("nav_across_") || data.startsWith("nav_down_")) {
-    const isAcross = data.startsWith("nav_across_");
-    const index = parseInt(data.split("_")[2]);
-    const words = puzzle.words.filter(w => (isAcross ? w.type === "across" : w.type === "down") && w.index === index);
-    const unsolvedWords = words.filter(w => !state.solvedWordIds.includes(w.id));
-
-    if (unsolvedWords.length > 0) {
-      await selectQuestion(unsolvedWords[0], userId, userName, chatId, state, puzzle, telegram, kv, cb.id);
-    }
-    return;
-  }
-
-  if (data.startsWith("hint_letter_")) {
-    const wordId = data.replace("hint_letter_", "");
-    const word = puzzle.words.find(w => w.id === wordId);
-
-    if (user.credits < 1) {
-      await telegram.answerCallbackQuery(cb.id, "❌ سکه کافی ندارید! (۱ سکه نیاز است)", true);
-      return;
-    }
-
-    const chars = word.answer.split("");
-    let revealedIndex = -1;
-    chars.forEach((_, idx) => {
-      let r = word.row, c = word.col;
-      if (word.type === "across") c += idx;
-      else r += idx;
-      if (!state.revealedCells[`${r}_${c}`] && revealedIndex === -1) {
-        revealedIndex = idx;
-        state.revealedCells[`${r}_${c}`] = true;
-      }
-    });
-
-    if (revealedIndex !== -1) {
-      await updateUserScoreAndCredits(kv, userId, userName, -1, 0);
-      await kv.put(`state:${chatId}`, JSON.stringify(state));
-
-      const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds, state.revealedCells);
-      const qText = PuzzleEngine.renderQuestions(puzzle);
-      await telegram.editMessageText(chatId, state.messageId, tableText + qText, buildMainKeyboard(puzzle, state.solvedWordIds));
-      await telegram.answerCallbackQuery(cb.id, `✅ ۱ حرف فاش شد! (-۱ سکه)`, true);
-
-      await selectQuestion(word, userId, userName, chatId, state, puzzle, telegram, kv, null);
-    } else {
-      await telegram.answerCallbackQuery(cb.id, "تمام حروف این کلمه قبلاً باز شده‌اند!", true);
-    }
-    return;
-  }
-
-  if (data.startsWith("hint_text_")) {
-    const wordId = data.replace("hint_text_", "");
-    const word = puzzle.words.find(w => w.id === wordId);
-
-    if (user.credits < 2) {
-      await telegram.answerCallbackQuery(cb.id, "❌ سکه کافی ندارید! (۲ سکه نیاز است)", true);
-      return;
-    }
-
-    await updateUserScoreAndCredits(kv, userId, userName, -2, 0);
-    await telegram.answerCallbackQuery(cb.id, `💡 راهنمایی متنی دوم:\n${word.hint2}`, true);
-    return;
-  }
-
-  if (data.startsWith("hint_full_")) {
-    const wordId = data.replace("hint_full_", "");
-    const word = puzzle.words.find(w => w.id === wordId);
-
-    if (user.credits < 5) {
-      await telegram.answerCallbackQuery(cb.id, "❌ سکه کافی ندارید! (۵ سکه نیاز است)", true);
-      return;
-    }
-
-    await updateUserScoreAndCredits(kv, userId, userName, -5, 0);
-    if (!state.solvedWordIds.includes(word.id)) {
-      state.solvedWordIds.push(word.id);
-    }
-    await kv.put(`state:${chatId}`, JSON.stringify(state));
-
-    const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds, state.revealedCells);
-    const qText = PuzzleEngine.renderQuestions(puzzle);
-    await telegram.editMessageText(chatId, state.messageId, tableText + qText, buildMainKeyboard(puzzle, state.solvedWordIds));
-    await telegram.answerCallbackQuery(cb.id, `🔓 پاسخ کامل فاش شد: ${word.answer} (-۵ سکه)`, true);
-    return;
-  }
-}
-
-async function selectQuestion(word, userId, userName, chatId, state, puzzle, telegram, kv, cbId) {
-  state.activeQuestion[userId] = word.id;
-  const user = await getUserData(kv, userId, userName);
-
-  if (state.lastPromptMsgId) {
-    await telegram.deleteMessage(chatId, state.lastPromptMsgId);
-  }
-
-  if (cbId) await telegram.answerCallbackQuery(cbId, `سوال انتخاب شد.`);
-  
-  const labelText = word.type === "across" ? `${toPersianDigits(word.index)} افقی` : `${toPersianDigits(word.index)} عمودی`;
-  const pattern = PuzzleEngine.getRevealedPattern(word, puzzle, state.solvedWordIds, state.revealedCells);
-
-  const promptMsg = await telegram.sendMessage(
-    chatId, 
-    `✍️ پاسخ <b>${labelText}</b>:\n` +
-    `❓ <b>سوال:</b> ${word.clue}\n` +
-    `📏 <b>تعداد حروف:</b> ${toPersianDigits(word.length)} حرفی\n` +
-    `💡 <b>حروف درآمده:</b> ${pattern}\n` +
-    `💰 <b>موجودی سکه شما:</b> ${toPersianDigits(user.credits)} سکه`,
-    buildHintKeyboard(word.id)
-  );
-
-  if (promptMsg && promptMsg.result) {
-    state.lastPromptMsgId = promptMsg.result.message_id;
-  }
-
-  if (kv) await kv.put(`state:${chatId}`, JSON.stringify(state));
-}
-
-async function sendGuideMessage(chatId, telegram) {
-  const text = `📖 <b>راهنمای بازی جدول:</b>\n\n` +
-    `۱. برای شروع جدول جدید دستور /new را ارسال کنید.\n` +
-    `۲. روی دکمه‌های افقی یا عمودی کلیک کرده و پاسخ را در چت بفرستید.\n` +
-    `۳. به ازای هر ۱ حرف صحیح، ۱ امتیاز دریافت می‌کنید.\n\n` +
-    `💡 <b>راهنماهای قابل خرید با سکه:</b>\n` +
-    `▫️ کشف ۱ حرف: ۱ سکه\n` +
-    `▫️ راهنمایی متنی دوم: ۲ سکه\n` +
-    `▫️ فاش کردن کامل پاسخ: ۵ سکه\n\n` +
-    `💰 هر کاربر جدید به صورت پیش‌فرض <b>۵۰ سکه اولیه</b> دریافت می‌کند.`;
-  await telegram.sendMessage(chatId, text);
-}
-
-async function showLeaderboard(chatId, kv, telegram) {
-  if (!kv) return;
-  const rawState = await kv.get(`state:${chatId}`);
-  if (!rawState) {
-    await telegram.sendMessage(chatId, "هنوز بازی در این گروه شروع نشده است. با /new شروع کنید!");
-    return;
-  }
-  const state = JSON.parse(rawState);
-  const playerIds = state.players || [];
-
-  let playerStats = [];
-  for (const pId of playerIds) {
-    const userData = await kv.get(`user:${pId}`);
-    if (userData) {
-      playerStats.push(JSON.parse(userData));
-    }
-  }
-
-  playerStats.sort((a, b) => b.score - a.score);
-
-  let msg = `🏆 <b>جدول امتیازی اعضای گروه:</b>\n\n`;
-  if (playerStats.length === 0) {
-    msg += "هنوز کسی امتیازی کسب نکرده است!";
-  } else {
-    playerStats.forEach((p, idx) => {
-      const rankEmoji = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "👤";
-      msg += `${rankEmoji} <b>${p.name}</b> 👈 <b>${toPersianDigits(p.score)}</b> امتیاز | 💰 ${toPersianDigits(p.credits)} سکه\n`;
-    });
-  }
-
-  await telegram.sendMessage(chatId, msg);
-}
+    const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds,
