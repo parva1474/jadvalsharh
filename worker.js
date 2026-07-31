@@ -556,5 +556,3 @@ async function handleCallback(cb, telegram, kv, ctx) {
 
   if (data.startsWith("nav_across_") || data.startsWith("nav_down_")) {
     const isAcross = data.sta
-  await telegram.sendMessage(chatId, msg);
-  }
