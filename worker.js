@@ -1,5 +1,5 @@
 // ==========================================
-// ۱. دیتابیس کلمات (با طول‌های مختلف)
+// ۱. دیتابیس کلمات
 // ==========================================
 const WORD_DB = {
   2: [
@@ -101,14 +101,13 @@ class TelegramAPI {
 }
 
 // ==========================================
-// ۲. تجزیه کامل تمام بخش‌های سفید ردیف‌ها و ستون‌ها
+// ۲. موتور ساخت جدول و تنظیم کامل حروف مجزا
 // ==========================================
 class PuzzleEngine {
   static generate() {
     const rows = 10;
     const cols = 10;
     
-    // الگوی خانه‌های مشکی متقارن
     const blocks = [
       [0,4], [0,5], [1,2], [1,7], [2,8], [3,3],
       [6,6], [7,1], [8,2], [8,7], [9,4], [9,5]
@@ -120,7 +119,7 @@ class PuzzleEngine {
     const words = [];
     let wordIdCounter = 1;
 
-    // استخراج تمام بخش‌های سفید افقی
+    // افقی (از راست به چپ در ماتریکس: ستون ۰ یعنی راست‌ترین)
     for (let r = 0; r < rows; r++) {
       let currentLen = 0;
       let startCol = 0;
@@ -135,7 +134,7 @@ class PuzzleEngine {
             words.push({
               id: `w_${wordIdCounter++}`,
               type: "across",
-              index: r + 1, // ردیف چندم (۱ تا ۱۰)
+              index: r + 1,
               row: r,
               col: startCol,
               length: item.word.length,
@@ -148,7 +147,7 @@ class PuzzleEngine {
       }
     }
 
-    // استخراج تمام بخش‌های سفید عمودی
+    // عمودی
     for (let c = 0; c < cols; c++) {
       let currentLen = 0;
       let startRow = 0;
@@ -163,7 +162,7 @@ class PuzzleEngine {
             words.push({
               id: `w_${wordIdCounter++}`,
               type: "down",
-              index: c + 1, // ستون چندم (۱ تا ۱۰ - از راست)
+              index: c + 1,
               row: startRow,
               col: c,
               length: item.word.length,
@@ -191,6 +190,7 @@ class PuzzleEngine {
 
     puzzle.blocks.forEach(([r, c]) => { grid[r][c] = "⬛"; });
 
+    // جای‌گذاری حروف به صورت کاملاً مجزا (جلوگیری از چسبیدن حروف فارسی)
     puzzle.words.forEach((w) => {
       if (solvedWordIds.includes(w.id)) {
         const chars = w.answer.split("");
@@ -199,7 +199,11 @@ class PuzzleEngine {
           let c = w.col;
           if (w.type === "across") c += idx;
           else r += idx;
-          if (r < puzzle.rows && c < puzzle.cols) grid[r][c] = char;
+
+          if (r < puzzle.rows && c < puzzle.cols) {
+            // استفاده از کاراکتر فاصله مجزا برای عدم چسبیدن حروف
+            grid[r][c] = char + " "; 
+          }
         });
       }
     });
@@ -208,7 +212,8 @@ class PuzzleEngine {
     tableStr += [...NUM_EMOJIS].reverse().join("") + "▫️\n";
 
     for (let r = 0; r < puzzle.rows; r++) {
-      const rowCells = [...grid[r]].reverse().join("");
+      // ردیف از راست به چپ
+      const rowCells = grid[r].join("");
       tableStr += rowCells + NUM_EMOJIS[r] + "\n";
     }
     return tableStr + "\n";
@@ -229,8 +234,7 @@ class PuzzleEngine {
 
     qStr += "\n<b>عمودی:</b>\n";
     for (let i = 1; i <= 10; i++) {
-      // ستون‌ها از راست به چپ محاسبه می‌شوند
-      const colIndex = 11 - i; 
+      const colIndex = i; 
       const colWords = puzzle.words.filter(w => w.type === "down" && w.index === colIndex);
       if (colWords.length > 0) {
         const clues = colWords.map(w => w.clue).join(" - ");
@@ -245,12 +249,11 @@ class PuzzleEngine {
 }
 
 // ==========================================
-// ۳. ساخت کیبورد عددی ۱ تا ۱۰ برای افقی و عمودی
+// ۳. ساخت کیبورد عددی منظم
 // ==========================================
 function buildMainKeyboard(puzzle, solvedWordIds) {
   const keyboard = [];
 
-  // ردیف افقی
   keyboard.push([{ text: "━━━ ✏️ افقی ━━━", callback_data: "ignore" }]);
   const acrossRow = [];
   for (let i = 1; i <= 10; i++) {
@@ -262,11 +265,10 @@ function buildMainKeyboard(puzzle, solvedWordIds) {
   }
   keyboard.push(acrossRow);
 
-  // ردیف عمودی
   keyboard.push([{ text: "━━━ ✏️ عمودی ━━━", callback_data: "ignore" }]);
   const downRow = [];
   for (let i = 1; i <= 10; i++) {
-    const colIndex = 11 - i;
+    const colIndex = i;
     const unSolvedCount = puzzle.words.filter(w => w.type === "down" && w.index === colIndex && !solvedWordIds.includes(w.id)).length;
     downRow.push({
       text: unSolvedCount > 0 ? NUM_EMOJIS[i-1] : "✅",
@@ -278,7 +280,6 @@ function buildMainKeyboard(puzzle, solvedWordIds) {
   return { inline_keyboard: keyboard };
 }
 
-// کیبورد فرعی اگر در یک ردیف/ستون بیش از ۱ سوال وجود داشت
 function buildSubQuestionKeyboard(words, solvedWordIds) {
   const keyboard = [];
   words.forEach((w, idx) => {
@@ -294,7 +295,7 @@ function buildSubQuestionKeyboard(words, solvedWordIds) {
 }
 
 // ==========================================
-// ۴. مدیریت پیام‌ها و رخدادها
+// ۴. هندل کردن ورودی کاربر و اعلان درست/غلط
 // ==========================================
 export default {
   async fetch(request, env, ctx) {
@@ -367,15 +368,16 @@ async function handleMessage(message, telegram, kv) {
   const word = puzzle.words.find((w) => w.id === activeQId);
   if (!word) return;
 
-  // پاکسازی پیام پاسخ کاربر
+  // پاک کردن پیام پاسخ کاربر
   await telegram.deleteMessage(chatId, message.message_id);
 
-  // پاکسازی پیام سوال
+  // پاک کردن پیام سوال
   if (state.lastPromptMsgId) {
     await telegram.deleteMessage(chatId, state.lastPromptMsgId);
     state.lastPromptMsgId = null;
   }
 
+  // بررسی پاسخ درست یا نادرست
   if (text.replace(/\s+/g, "") === word.answer) {
     if (!state.solvedWordIds.includes(word.id)) {
       state.solvedWordIds.push(word.id);
@@ -390,9 +392,21 @@ async function handleMessage(message, telegram, kv) {
 
     await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
 
+    // ارسال بازخورد موفقیت
+    const feedbackMsg = await telegram.sendMessage(chatId, `✅ <b>پاسخ درست بود!</b> (${word.answer})`);
+    setTimeout(() => {
+      telegram.deleteMessage(chatId, feedbackMsg.result.message_id);
+    }, 3000);
+
     if (isAllSolved) {
       await telegram.sendMessage(chatId, "🎉 تبریک! تمام سوالات جدول با موفقیت حل شدند!");
     }
+  } else {
+    // ارسال بازخورد اشتباه
+    const wrongMsg = await telegram.sendMessage(chatId, "❌ <b>پاسخ نادرست است!</b> دوباره تلاش کنید.");
+    setTimeout(() => {
+      telegram.deleteMessage(chatId, wrongMsg.result.message_id);
+    }, 3000);
   }
 }
 
@@ -431,10 +445,8 @@ async function handleCallback(cb, telegram, kv) {
     const unsolvedWords = words.filter(w => !state.solvedWordIds.includes(w.id));
 
     if (unsolvedWords.length === 1) {
-      // اگر فقط یک سوال در این ردیف/ستون بود مستقیماً انتخاب شود
       await selectQuestion(unsolvedWords[0], userId, chatId, state, puzzle, telegram, kv, cb.id);
     } else if (unsolvedWords.length > 1) {
-      // اگر چند سوال وجود داشت کیبورد فرعی باز شود
       const subKb = buildSubQuestionKeyboard(words, state.solvedWordIds);
       const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds);
       const qText = PuzzleEngine.renderQuestions(puzzle);
@@ -460,7 +472,7 @@ async function selectQuestion(word, userId, chatId, state, puzzle, telegram, kv,
 
   await telegram.answerCallbackQuery(cbId, `سوال انتخاب شد.`);
   
-  const labelText = word.type === "across" ? `${toPersianDigits(word.index)} افقی` : `${toPersianDigits(11 - word.index)} عمودی`;
+  const labelText = word.type === "across" ? `${toPersianDigits(word.index)} افقی` : `${toPersianDigits(word.index)} عمودی`;
 
   const promptMsg = await telegram.sendMessage(
     chatId, 
@@ -471,7 +483,6 @@ async function selectQuestion(word, userId, chatId, state, puzzle, telegram, kv,
     state.lastPromptMsgId = promptMsg.result.message_id;
   }
 
-  // بازگرداندن کیبورد به حالت اصلی
   const keyboard = buildMainKeyboard(puzzle, state.solvedWordIds);
   const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds);
   const qText = PuzzleEngine.renderQuestions(puzzle);
