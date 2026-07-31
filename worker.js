@@ -1,5 +1,5 @@
 // ==========================================
-// ۱. تنظیمات اولیه و توکن‌ها
+// ۱. تنظیمات اولیه و بانک جامع کلمات (تنوع بالا)
 // ==========================================
 const DEFAULT_BOT_TOKEN = "8595424524:AAEWYrIAzj6RRE7_G-5zY33333333333333";
 const CHANNEL_USERNAME = "@parvapoem";
@@ -8,26 +8,34 @@ const CHANNEL_LINK = "https://t.me/parvapoem";
 const WORD_DB = {
   2: [
     { word: "رم", clue: "پایتخت ایتالیا", hint2: "کشوری چکمه‌ای شکل در اروپا" },
-    { word: "بم", clue: "شهر ززلزله‌زده ارگ تاریخی", hint2: "شهری در استان کرمان" },
+    { word: "بم", clue: "شهر ارگ تاریخی", hint2: "شهری در استان کرمان" },
     { word: "سد", clue: "دیواره مهار آب", hint2: "سازه‌ای روی رودخانه" },
     { word: "ری", clue: "از شهرهای قدیمی تهران", hint2: "مدفن شاه عبدالعظیم" },
     { word: "شب", clue: "تاریکی و زمان خواب", hint2: "مقابل روز" },
     { word: "کم", clue: "اندک و ناچیز", hint2: "مقابل زیاد" },
     { word: "پا", clue: "عضو راه رفتن", hint2: "پایین‌تر از زانو" },
-    { word: "نی", clue: "ساز بادی چوپان", hint2: "از گیاهان باتلاقی ساخته می‌شود" }
+    { word: "نی", clue: "ساز بادی چوپان", hint2: "از گیاهان باتلاقی ساخته می‌شود" },
+    { word: "فن", clue: "شگرد و مهارتی در کار", hint2: "تکنیک و روش" },
+    { word: "دم", clue: "نفس یا دنباله حیوانات", hint2: "مقابل بازدم" },
+    { word: "رب", clue: "پروردگار یا چاشنی غذا", hint2: "رب گوجه" },
+    { word: "حق", clue: "عدالت و راستین", hint2: "مقابل باطل" }
   ],
   3: [
     { word: "ارم", clue: "بهشت موعود", hint2: "نام باغی معروف در شیراز" },
-    { word: "امیر", clue: "فرمانروا", hint2: "لقب یا اسم مردانه به معنی پادشاه" },
+    { word: "امیر", clue: "فرمانروا", hint2: "لقب یا اسم مردانه" },
     { word: "رازی", clue: "کاشف الکل", hint2: "پزشک و دانشمند بزرگ ایرانی" },
-    { word: "حافظ", clue: "شاعر شیرازی", hint2: "صاحب دیوان غزلیات و لسان‌الغیب" },
+    { word: "حافظ", clue: "شاعر شیرازی", hint2: "صاحب دیوان غزلیات" },
     { word: "سعدی", clue: "شاعر گلستان", hint2: "استاد سخن و صاحب بوستان" },
     { word: "سهند", clue: "کوه آذربایجان", hint2: "عروس کوه‌های ایران" },
     { word: "رستم", clue: "پهلوان شاهنامه", hint2: "فرزند زال و رودابه" },
     { word: "ایران", clue: "کشور عزیزمان", hint2: "مهر وطن" },
     { word: "شیراز", clue: "شهر شعر", hint2: "شهر حافظ و سعدی" },
     { word: "تبریز", clue: "شهر اولین‌ها", hint2: "مرکز استان آذربایجان شرقی" },
-    { word: "مشهد", clue: "شهر زیارتی", hint2: "حرم امام رضا (ع) در آن است" }
+    { word: "مشهد", clue: "شهر زیارتی", hint2: "حرم امام رضا (ع) در آن است" },
+    { word: "اصفهان", clue: "نصف جهان", hint2: "شهر سی‌و‌سه پل" },
+    { word: "کارون", clue: "رود پرآب ایران", hint2: "رودی در استان خوزستان" },
+    { word: "اهواز", clue: "مرکز خوزستان", hint2: "شهر پل‌ها" },
+    { word: "کرمان", clue: "شهر زیره‌", hint2: "از استان‌های پهناور ایران" }
   ],
   4: [
     { word: "زاگرس", clue: "رشته‌کوه غربی", hint2: "از کردستان تا فارس امتداد دارد" },
@@ -35,7 +43,10 @@ const WORD_DB = {
     { word: "سیمرغ", clue: "پرنده افسانه‌ای", hint2: "پرنده اساطیری شاهنامه" },
     { word: "کاسپین", clue: "دریاچه خزر", hint2: "بزرگترین دریاچه جهان" },
     { word: "دماوند", clue: "قله بلند ایران", hint2: "دیو سپید پای در بند" },
-    { word: "فردوسی", clue: "شاعر شاهنامه", hint2: "زنده کننده زبان فارسی" }
+    { word: "فردوسی", clue: "شاعر شاهنامه", hint2: "زنده کننده زبان فارسی" },
+    { word: "بیستون", clue: "کوه معروف کرمانشاه", hint2: "یادگار فرهاد کوهنورد" },
+    { word: "ابوعلی", clue: "پزشک نامدار ایرانی", hint2: "ابن سینا" },
+    { word: "تخت‌جمشید", clue: "یادگار هخامنشیان", hint2: "پلی در مرودشت فارس" }
   ]
 };
 
@@ -102,11 +113,13 @@ class TelegramAPI {
   }
 
   async deleteMessage(chatId, messageId) {
-    await fetch(`${this.baseUrl}/deleteMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, message_id: messageId })
-    });
+    try {
+      await fetch(`${this.baseUrl}/deleteMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, message_id: messageId })
+      });
+    } catch(e){}
   }
 
   async answerCallbackQuery(callbackQueryId, text = "", showAlert = false) {
@@ -119,7 +132,7 @@ class TelegramAPI {
 }
 
 // ==========================================
-// ۳. موتور ساخت و رندر جدول (اصلاح تمیزی ساختار و تراز)
+// ۳. موتور ساخت و رندر جدول (اصلاح کامل تراز متنی)
 // ==========================================
 class PuzzleEngine {
   static generate() {
@@ -127,7 +140,8 @@ class PuzzleEngine {
     const cols = 10;
     const blockPatterns = [
       [[0,4], [0,5], [1,2], [1,7], [2,8], [3,3], [6,6], [7,1], [8,2], [8,7], [9,4], [9,5]],
-      [[0,2], [0,7], [2,4], [2,5], [3,1], [3,8], [6,1], [6,8], [7,4], [7,5], [9,2], [9,7]]
+      [[0,2], [0,7], [2,4], [2,5], [3,1], [3,8], [6,1], [6,8], [7,4], [7,5], [9,2], [9,7]],
+      [[1,1], [1,8], [2,3], [2,6], [4,0], [4,9], [5,0], [5,9], [7,3], [7,6], [8,1], [8,8]]
     ];
     
     const blocks = blockPatterns[Math.floor(Math.random() * blockPatterns.length)];
@@ -156,7 +170,7 @@ class PuzzleEngine {
               length: item.word.length,
               answer: item.word,
               clue: item.clue,
-              hint2: item.hint2 || "راهنمایی متنی دیگری وجود ندارد."
+              hint2: item.hint2 || "راهنمایی دیگری ثبت نشده."
             });
           }
           currentLen = 0;
@@ -182,7 +196,7 @@ class PuzzleEngine {
               length: item.word.length,
               answer: item.word,
               clue: item.clue,
-              hint2: item.hint2 || "راهنمایی متنی دیگری وجود ندارد."
+              hint2: item.hint2 || "راهنمایی دیگری ثبت نشده."
             });
           }
           currentLen = 0;
@@ -190,7 +204,7 @@ class PuzzleEngine {
       }
     }
 
-    return { id: "puzzle_" + Date.now(), rows, cols, blocks, words };
+    return { id: "puzzle_" + Date.now() + "_" + Math.floor(Math.random()*1000), rows, cols, blocks, words };
   }
 
   static getGridMatrix(puzzle, solvedWordIds, revealedCells = {}) {
@@ -220,17 +234,25 @@ class PuzzleEngine {
     for (let r = 0; r < puzzle.rows; r++) {
       for (let c = 0; c < puzzle.cols; c++) {
         if (matrix[r][c]) {
-          // استفاده از حروف با فاصله دقیق جهت جلوگیری از بهم ریختگی فونت
-          gridDisplay[r][c] = matrix[r][c] + ""; 
+          gridDisplay[r][c] = matrix[r][c]; 
         }
       }
     }
 
     let tableStr = `<pre>`;
-    tableStr += "  ۱۰ ۹ ۸  ۷  ۶  ۵ ۴  ۳ ۲  ۱\n";
+    tableStr += "  ۱۰ ۹  ۸  ۷  ۶  ۵  ۴  ۳  ۲  ۱\n";
     for (let r = 0; r < puzzle.rows; r++) {
       const rowNum = (r + 1 < 10 ? " " + toPersianDigits(r + 1) : toPersianDigits(r + 1));
-      const rowContent = gridDisplay[r].map(cell => cell.length === 1 ? cell + " " : cell).join("");
+      let rowContent = "";
+      for (let c = 0; c < puzzle.cols; c++) {
+        const val = gridDisplay[r][c];
+        if (val === "⬜" || val === "⬛") {
+          rowContent += val;
+        } else {
+          // برای حروف کلمات جهت حفظ تراز
+          rowContent += val + " ";
+        }
+      }
       tableStr += `${rowNum} ${rowContent}\n`;
     }
     tableStr += `</pre>\n`;
@@ -270,9 +292,9 @@ class PuzzleEngine {
     }
     return qStr;
   }
-      }
+                       }
 // ==========================================
-// ۴. مدیریت کاربر و سکه‌ها
+// ۴. مدیریت سیستم کاربری
 // ==========================================
 async function getUserData(kv, userId, name) {
   if (!kv) return { id: userId, name: name || "بازیکن", credits: 50, score: 0 };
@@ -293,7 +315,7 @@ async function updateUserScoreAndCredits(kv, userId, name, creditsDelta, scoreDe
 }
 
 // ==========================================
-// ۵. ساخت دکمه‌ها
+// ۵. ساخت کیبوردها (رفع محدودیت ۸ دکمه با ساختار ۵+۵)
 // ==========================================
 function getJoinKeyboard() {
   return {
@@ -307,27 +329,53 @@ function getJoinKeyboard() {
 function buildMainKeyboard(puzzle, solvedWordIds) {
   const keyboard = [];
 
-  keyboard.push([{ text: "━━━ ✏️ افقی ━━━", callback_data: "ignore" }]);
-  const acrossRow = [];
-  for (let i = 1; i <= 10; i++) {
+  // --- افقی (سطر ۱: ۱ تا ۵) ---
+  keyboard.push([{ text: "━━━ ✏️ افقی (۱ تا ۵) ━━━", callback_data: "ignore" }]);
+  const acrossRow1 = [];
+  for (let i = 1; i <= 5; i++) {
     const unSolvedCount = puzzle.words.filter(w => w.type === "across" && w.index === i && !solvedWordIds.includes(w.id)).length;
-    acrossRow.push({
+    acrossRow1.push({
       text: unSolvedCount > 0 ? NUM_EMOJIS[i-1] : "✅",
       callback_data: unSolvedCount > 0 ? `nav_across_${i}` : "ignore"
     });
   }
-  keyboard.push(acrossRow);
+  keyboard.push(acrossRow1);
 
-  keyboard.push([{ text: "━━━ ✏️ عمودی ━━━", callback_data: "ignore" }]);
-  const downRow = [];
-  for (let i = 1; i <= 10; i++) {
+  // --- افقی (سطر ۲: ۶ تا ۱۰) ---
+  keyboard.push([{ text: "━━━ ✏️ افقی (۶ تا ۱۰) ━━━", callback_data: "ignore" }]);
+  const acrossRow2 = [];
+  for (let i = 6; i <= 10; i++) {
+    const unSolvedCount = puzzle.words.filter(w => w.type === "across" && w.index === i && !solvedWordIds.includes(w.id)).length;
+    acrossRow2.push({
+      text: unSolvedCount > 0 ? NUM_EMOJIS[i-1] : "✅",
+      callback_data: unSolvedCount > 0 ? `nav_across_${i}` : "ignore"
+    });
+  }
+  keyboard.push(acrossRow2);
+
+  // --- عمودی (سطر ۱: ۱ تا ۵) ---
+  keyboard.push([{ text: "━━━ ✏️ عمودی (۱ تا ۵) ━━━", callback_data: "ignore" }]);
+  const downRow1 = [];
+  for (let i = 1; i <= 5; i++) {
     const unSolvedCount = puzzle.words.filter(w => w.type === "down" && w.index === i && !solvedWordIds.includes(w.id)).length;
-    downRow.push({
+    downRow1.push({
       text: unSolvedCount > 0 ? NUM_EMOJIS[i-1] : "✅",
       callback_data: unSolvedCount > 0 ? `nav_down_${i}` : "ignore"
     });
   }
-  keyboard.push(downRow);
+  keyboard.push(downRow1);
+
+  // --- عمودی (سطر ۲: ۶ تا ۱۰) ---
+  keyboard.push([{ text: "━━━ ✏️ عمودی (۶ تا ۱۰) ━━━", callback_data: "ignore" }]);
+  const downRow2 = [];
+  for (let i = 6; i <= 10; i++) {
+    const unSolvedCount = puzzle.words.filter(w => w.type === "down" && w.index === i && !solvedWordIds.includes(w.id)).length;
+    downRow2.push({
+      text: unSolvedCount > 0 ? NUM_EMOJIS[i-1] : "✅",
+      callback_data: unSolvedCount > 0 ? `nav_down_${i}` : "ignore"
+    });
+  }
+  keyboard.push(downRow2);
   
   keyboard.push([
     { text: "🏆 امتیازات گروه", callback_data: "show_top" },
@@ -341,7 +389,8 @@ function buildMainKeyboard(puzzle, solvedWordIds) {
   return { inline_keyboard: keyboard };
 }
 
-function buildHintKeyboard(wordId) {
+// دکمه منوی راهنمایی مجزا
+function buildHintMenuKeyboard(wordId) {
   return {
     inline_keyboard: [
       [{ text: "🔤 کشف ۱ حرف (۱ سکه)", callback_data: `hint_letter_${wordId}` }],
@@ -350,6 +399,20 @@ function buildHintKeyboard(wordId) {
       [{ text: "🔙 بازگشت به جدول", callback_data: "nav_back" }]
     ]
   };
+}
+
+// دکمه انتخاب سوال از بین سوالات سطر/ستون
+function buildWordSelectionKeyboard(words, solvedWordIds) {
+  const keyboard = [];
+  words.forEach((w, idx) => {
+    const isSolved = solvedWordIds.includes(w.id);
+    keyboard.push([{
+      text: (isSolved ? "✅ " : `سوال ${toPersianDigits(idx+1)}: `) + w.clue,
+      callback_data: isSolved ? "ignore" : `select_word_${w.id}`
+    }]);
+  });
+  keyboard.push([{ text: "🔙 بازگشت به جدول", callback_data: "nav_back" }]);
+  return { inline_keyboard: keyboard };
 }
 
 // ==========================================
@@ -425,16 +488,6 @@ async function handleMessage(message, telegram, kv, ctx) {
       await sendGuideMessage(chatId, telegram);
       return;
     }
-
-    if (command === "/top") {
-      await showLeaderboard(chatId, kv, telegram);
-      return;
-    }
-
-    if (command === "/profile") {
-      await telegram.sendMessage(chatId, `👤 <b>پروفایل شما:</b>\n💰 موجودی سکه: <b>${toPersianDigits(user.credits)}</b>\n⭐ امتیاز: <b>${toPersianDigits(user.score)}</b>`);
-      return;
-    }
   }
 
   if (!kv) return;
@@ -452,11 +505,8 @@ async function handleMessage(message, telegram, kv, ctx) {
   const word = puzzle.words.find(w => w.id === activeQId);
   if (!word) return;
 
+  // پاک کردن پیام کاربر
   await telegram.deleteMessage(chatId, message.message_id);
-  if (state.lastPromptMsgId) {
-    await telegram.deleteMessage(chatId, state.lastPromptMsgId);
-    state.lastPromptMsgId = null;
-  }
 
   if (text.replace(/\s+/g, "") === word.answer) {
     if (!state.solvedWordIds.includes(word.id)) {
@@ -468,29 +518,28 @@ async function handleMessage(message, telegram, kv, ctx) {
 
     delete state.activeQuestion[userId];
 
-    if (state.messageId) {
-      await telegram.deleteMessage(chatId, state.messageId);
+    if (state.lastPromptMsgId) {
+      await telegram.deleteMessage(chatId, state.lastPromptMsgId);
+      state.lastPromptMsgId = null;
     }
 
     const feedback = await telegram.sendMessage(chatId, `✅ <b>${userName}</b> پاسخ درست داد! (+${toPersianDigits(word.answer.length)} امتیاز)`);
     if (feedback && feedback.result) {
-      ctx.waitUntil(new Promise(r => setTimeout(r, 4000)).then(() => telegram.deleteMessage(chatId, feedback.result.message_id)));
+      ctx.waitUntil(new Promise(r => setTimeout(r, 5000)).then(() => telegram.deleteMessage(chatId, feedback.result.message_id)));
     }
 
+    // به‌روزرسانی همان جدول قبلی بدون حذف آن
     const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds, state.revealedCells);
     const qText = PuzzleEngine.renderQuestions(puzzle);
     const keyboard = buildMainKeyboard(puzzle, state.solvedWordIds);
 
-    const newTableMsg = await telegram.sendMessage(chatId, tableText + qText, keyboard);
-    if (newTableMsg && newTableMsg.result) {
-      state.messageId = newTableMsg.result.message_id;
-    }
-
+    await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
     await kv.put(`state:${chatId}`, JSON.stringify(state));
+
   } else {
     const wrongMsg = await telegram.sendMessage(chatId, `❌ پاسخ <b>${userName}</b> اشتباه بود!`);
     if (wrongMsg && wrongMsg.result) {
-      ctx.waitUntil(new Promise(r => setTimeout(r, 4000)).then(() => telegram.deleteMessage(chatId, wrongMsg.result.message_id)));
+      ctx.waitUntil(new Promise(r => setTimeout(r, 5000)).then(() => telegram.deleteMessage(chatId, wrongMsg.result.message_id)));
     }
   }
 }
@@ -514,35 +563,6 @@ async function handleCallback(cb, telegram, kv, ctx) {
     return;
   }
 
-  const isMember = await telegram.checkChannelMember(userId);
-  if (!isMember) {
-    await telegram.answerCallbackQuery(cb.id, "⚠️ جهت ادامه ابتدا باید عضو کانال شوید!", true);
-    await telegram.sendMessage(chatId, `⚠️ <b>جهت استفاده از ربات باید عضو کانال شوید:</b>`, getJoinKeyboard());
-    return;
-  }
-
-  if (data === "buy_credits") {
-    await telegram.answerCallbackQuery(cb.id, `💰 سکه فعلی شما: ${toPersianDigits(user.credits)}\nجهت خرید سکه به پشتیبانی پیام دهید.`, true);
-    return;
-  }
-
-  if (data === "show_profile") {
-    await telegram.answerCallbackQuery(cb.id, `👤 پروفایل ${userName}:\n💰 سکه: ${toPersianDigits(user.credits)}\n⭐ امتیاز: ${toPersianDigits(user.score)}`, true);
-    return;
-  }
-
-  if (data === "show_guide") {
-    await sendGuideMessage(chatId, telegram);
-    await telegram.answerCallbackQuery(cb.id);
-    return;
-  }
-
-  if (data === "show_top") {
-    await showLeaderboard(chatId, kv, telegram);
-    await telegram.answerCallbackQuery(cb.id);
-    return;
-  }
-
   if (!kv) return;
   const rawState = await kv.get(`state:${chatId}`);
   if (!rawState) return;
@@ -557,20 +577,80 @@ async function handleCallback(cb, telegram, kv, ctx) {
     const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds, state.revealedCells);
     const qText = PuzzleEngine.renderQuestions(puzzle);
     await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
+    if (state.lastPromptMsgId) {
+      await telegram.deleteMessage(chatId, state.lastPromptMsgId);
+      state.lastPromptMsgId = null;
+      await kv.put(`state:${chatId}`, JSON.stringify(state));
+    }
     await telegram.answerCallbackQuery(cb.id);
     return;
   }
 
-  // اصلاح مطابقت کامل کلمات با راهنمای سوالات سطر/ستون
+  // نمایش تمام سوالات آن سطر/ستون برای انتخاب کاربر
   if (data.startsWith("nav_across_") || data.startsWith("nav_down_")) {
     const isAcross = data.startsWith("nav_across_");
     const index = parseInt(data.split("_")[2]);
-    const words = puzzle.words.filter(w => (isAcross ? w.type === "across" : w.type === "down") && w.index === index);
-    const unsolvedWords = words.filter(w => !state.solvedWordIds.includes(w.id));
+    const lineWords = puzzle.words.filter(w => (isAcross ? w.type === "across" : w.type === "down") && w.index === index);
 
-    if (unsolvedWords.length > 0) {
-      await selectQuestion(unsolvedWords[0], words, userId, userName, chatId, state, puzzle, telegram, kv, cb.id);
+    const title = (isAcross ? "افقی" : "عمودی") + " " + toPersianDigits(index);
+    const keyboard = buildWordSelectionKeyboard(lineWords, state.solvedWordIds);
+
+    if (state.lastPromptMsgId) await telegram.deleteMessage(chatId, state.lastPromptMsgId);
+
+    const msg = await telegram.sendMessage(chatId, `📌 <b>سوالات ردیف ${title}:</b>\nکدام سوال را می‌خواهید پاسخ دهید؟`, keyboard);
+    if (msg && msg.result) {
+      state.lastPromptMsgId = msg.result.message_id;
+      await kv.put(`state:${chatId}`, JSON.stringify(state));
     }
+    await telegram.answerCallbackQuery(cb.id);
+    return;
+  }
+
+  if (data.startsWith("select_word_")) {
+    const wordId = data.replace("select_word_", "");
+    const word = puzzle.words.find(w => w.id === wordId);
+    if (word) {
+      state.activeQuestion[userId] = word.id;
+      
+      if (state.lastPromptMsgId) await telegram.deleteMessage(chatId, state.lastPromptMsgId);
+
+      const labelText = word.type === "across" ? `${toPersianDigits(word.index)} افقی` : `${toPersianDigits(word.index)} عمودی`;
+      const pattern = PuzzleEngine.getRevealedPattern(word, puzzle, state.solvedWordIds, state.revealedCells);
+
+      const promptMsg = await telegram.sendMessage(
+        chatId,
+        `✍️ <b>سوال انتخاب شده (${labelText}):</b>\n\n` +
+        `❓ <b>سوال:</b> ${word.clue}\n` +
+        `📏 <b>تعداد حروف:</b> ${toPersianDigits(word.length)} حرفی\n` +
+        `💡 <b>حروف فاش‌شده:</b> ${pattern}\n\n` +
+        `<i>پاسخ خود را در چت تایپ و ارسال کنید.</i>`,
+        {
+          inline_keyboard: [
+            [{ text: "💡 دریافت راهنمایی (سکه)", callback_data: `open_hints_${word.id}` }],
+            [{ text: "🔙 بازگشت به جدول", callback_data: "nav_back" }]
+          ]
+        }
+      );
+
+      if (promptMsg && promptMsg.result) {
+        state.lastPromptMsgId = promptMsg.result.message_id;
+      }
+      await kv.put(`state:${chatId}`, JSON.stringify(state));
+    }
+    await telegram.answerCallbackQuery(cb.id);
+    return;
+  }
+
+  if (data.startsWith("open_hints_")) {
+    const wordId = data.replace("open_hints_", "");
+    if (state.lastPromptMsgId) await telegram.deleteMessage(chatId, state.lastPromptMsgId);
+
+    const hintMsg = await telegram.sendMessage(chatId, `💰 <b>منوی راهنمایی:</b> (موجودی: ${toPersianDigits(user.credits)} سکه)`, buildHintMenuKeyboard(wordId));
+    if (hintMsg && hintMsg.result) {
+      state.lastPromptMsgId = hintMsg.result.message_id;
+      await kv.put(`state:${chatId}`, JSON.stringify(state));
+    }
+    await telegram.answerCallbackQuery(cb.id);
     return;
   }
 
@@ -579,7 +659,7 @@ async function handleCallback(cb, telegram, kv, ctx) {
     const word = puzzle.words.find(w => w.id === wordId);
 
     if (user.credits < 1) {
-      await telegram.answerCallbackQuery(cb.id, "❌ سکه کافی ندارید! (۱ سکه نیاز است)", true);
+      await telegram.answerCallbackQuery(cb.id, "❌ سکه کافی ندارید!", true);
       return;
     }
 
@@ -603,11 +683,8 @@ async function handleCallback(cb, telegram, kv, ctx) {
       const qText = PuzzleEngine.renderQuestions(puzzle);
       await telegram.editMessageText(chatId, state.messageId, tableText + qText, buildMainKeyboard(puzzle, state.solvedWordIds));
       await telegram.answerCallbackQuery(cb.id, `✅ ۱ حرف فاش شد! (-۱ سکه)`, true);
-
-      const lineWords = puzzle.words.filter(w => w.type === word.type && w.index === word.index);
-      await selectQuestion(word, lineWords, userId, userName, chatId, state, puzzle, telegram, kv, null);
     } else {
-      await telegram.answerCallbackQuery(cb.id, "تمام حروف این کلمه قبلاً باز شده‌اند!", true);
+      await telegram.answerCallbackQuery(cb.id, "تمام حروف این کلمه باز شده‌اند!", true);
     }
     return;
   }
@@ -617,12 +694,12 @@ async function handleCallback(cb, telegram, kv, ctx) {
     const word = puzzle.words.find(w => w.id === wordId);
 
     if (user.credits < 2) {
-      await telegram.answerCallbackQuery(cb.id, "❌ سکه کافی ندارید! (۲ سکه نیاز است)", true);
+      await telegram.answerCallbackQuery(cb.id, "❌ سکه کافی ندارید!", true);
       return;
     }
 
     await updateUserScoreAndCredits(kv, userId, userName, -2, 0);
-    await telegram.answerCallbackQuery(cb.id, `💡 راهنمایی متنی دوم:\n${word.hint2}`, true);
+    await telegram.answerCallbackQuery(cb.id, `💡 راهنمایی دوم:\n${word.hint2}`, true);
     return;
   }
 
@@ -631,7 +708,7 @@ async function handleCallback(cb, telegram, kv, ctx) {
     const word = puzzle.words.find(w => w.id === wordId);
 
     if (user.credits < 5) {
-      await telegram.answerCallbackQuery(cb.id, "❌ سکه کافی ندارید! (۵ سکه نیاز است)", true);
+      await telegram.answerCallbackQuery(cb.id, "❌ سکه کافی ندارید!", true);
       return;
     }
 
@@ -647,82 +724,4 @@ async function handleCallback(cb, telegram, kv, ctx) {
     await telegram.answerCallbackQuery(cb.id, `🔓 پاسخ کامل فاش شد: ${word.answer} (-۵ سکه)`, true);
     return;
   }
-}
-
-async function selectQuestion(word, lineWords, userId, userName, chatId, state, puzzle, telegram, kv, cbId) {
-  state.activeQuestion[userId] = word.id;
-  const user = await getUserData(kv, userId, userName);
-
-  if (state.lastPromptMsgId) {
-    await telegram.deleteMessage(chatId, state.lastPromptMsgId);
-  }
-
-  if (cbId) await telegram.answerCallbackQuery(cbId, `سوال انتخاب شد.`);
-  
-  const labelText = word.type === "across" ? `${toPersianDigits(word.index)} افقی` : `${toPersianDigits(word.index)} عمودی`;
-  const pattern = PuzzleEngine.getRevealedPattern(word, puzzle, state.solvedWordIds, state.revealedCells);
-  const fullClues = lineWords.map(w => w.clue).join(" - ");
-
-  const promptMsg = await telegram.sendMessage(
-    chatId, 
-    `✍️ پاسخ <b>${labelText}</b>:\n` +
-    `❓ <b>راهنمای سطر/ستون:</b> ${fullClues}\n` +
-    `📌 <b>سوال فعلی:</b> ${word.clue}\n` +
-    `📏 <b>تعداد حروف:</b> ${toPersianDigits(word.length)} حرفی\n` +
-    `💡 <b>حروف درآمده:</b> ${pattern}\n` +
-    `💰 <b>موجودی سکه شما:</b> ${toPersianDigits(user.credits)} سکه`,
-    buildHintKeyboard(word.id)
-  );
-
-  if (promptMsg && promptMsg.result) {
-    state.lastPromptMsgId = promptMsg.result.message_id;
-  }
-
-  if (kv) await kv.put(`state:${chatId}`, JSON.stringify(state));
-}
-
-async function sendGuideMessage(chatId, telegram) {
-  const text = `📖 <b>راهنمای بازی جدول:</b>\n\n` +
-    `۱. برای شروع جدول جدید دستور /new را ارسال کنید.\n` +
-    `۲. روی دکمه‌های افقی یا عمودی کلیک کرده و پاسخ را در چت بفرستید.\n` +
-    `۳. به ازای هر ۱ حرف صحیح، ۱ امتیاز دریافت می‌کنید.\n\n` +
-    `💡 <b>راهنماهای قابل خرید با سکه:</b>\n` +
-    `▫️ کشف ۱ حرف: ۱ سکه\n` +
-    `▫️ راهنمایی متنی دوم: ۲ سکه\n` +
-    `▫️ فاش کردن کامل پاسخ: ۵ سکه\n\n` +
-    `💰 هر کاربر جدید به صورت پیش‌فرض <b>۵۰ سکه اولیه</b> دریافت می‌کند.`;
-  await telegram.sendMessage(chatId, text);
-}
-
-async function showLeaderboard(chatId, kv, telegram) {
-  if (!kv) return;
-  const rawState = await kv.get(`state:${chatId}`);
-  if (!rawState) {
-    await telegram.sendMessage(chatId, "هنوز بازی در این گروه شروع نشده است. با /new شروع کنید!");
-    return;
-  }
-  const state = JSON.parse(rawState);
-  const playerIds = state.players || [];
-
-  let playerStats = [];
-  for (const pId of playerIds) {
-    const userData = await kv.get(`user:${pId}`);
-    if (userData) {
-      playerStats.push(JSON.parse(userData));
-    }
-  }
-
-  playerStats.sort((a, b) => b.score - a.score);
-
-  let msg = `🏆 <b>جدول امتیازی اعضای گروه:</b>\n\n`;
-  if (playerStats.length === 0) {
-    msg += "هنوز کسی امتیازی کسب نکرده است!";
-  } else {
-    playerStats.forEach((p, idx) => {
-      const rankEmoji = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "👤";
-      msg += `${rankEmoji} <b>${p.name}</b> 👈 <b>${toPersianDigits(p.score)}</b> امتیاز | 💰 ${toPersianDigits(p.credits)} سکه\n`;
-    });
-  }
-
-  await telegram.sendMessage(chatId, msg);
-}
+        }
