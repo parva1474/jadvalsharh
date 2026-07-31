@@ -1,27 +1,38 @@
 // ==========================================
-// ۱. بانک کلمات و سوالات جدول
+// ۱. دیتابیس جدول‌های کلاسیک (۱۰ در ۱۰)
 // ==========================================
-const WORD_BANK = [
-  { word: "ایران", question: "کشوری در جنوب غربی آسیا" },
-  { word: "تهران", question: "پایتخت ایران" },
-  { word: "ازادی", question: "برج معروف و نمادین تهران" },
-  { word: "سعدی", question: "شاعر بوستان و گلستان" },
-  { word: "حافظ", question: "لسان‌الغیب شیرازی" },
-  { word: "فردوسی", question: "سرایش‌گر شاهنامه" },
-  { word: "دماوند", question: "بلندترین قله ایران" },
-  { word: "خلیجفارس", question: "پهنه آبی جنوب ایران" },
-  { word: "سهند", question: "از کوه‌های استان آذربایجان شرقی" },
-  { word: "البرز", question: "رشته‌کوه شمالی ایران" },
-  { word: "زاگرس", question: "رشته‌کوه غربی ایران" },
-  { word: "اروند", question: "رود مرزی ایران و عراق" },
-  { word: "سیمرغ", question: "پرنده افسانه‌ای شاهنامه" },
-  { word: "رستم", question: "قهرمان نامدار شاهنامه" },
-  { word: "سهراب", question: "فرزند رستم" },
-  { word: "کوروش", question: "بنیان‌گذار هخامنشیان" },
-  { word: "داریوش", question: "پادشاه بزرگ هخامنشی" },
-  { word: "کارون", question: "طولانی‌ترین رود ایران" },
-  { word: "کاسپین", question: "نام دیگر دریاچه خزر" }
-];
+const CLASSIC_PUZZLE = {
+  id: "classic_10x10_1",
+  title: "جدول کلاسیک شماره ۱",
+  rows: 10,
+  cols: 10,
+  // خانه‌های مشکی ثابت جدول [row, col] (از ۰ تا ۹)
+  blocks: [
+    [0, 3], [0, 7],
+    [1, 5],
+    [2, 2], [2, 8],
+    [3, 4],
+    [4, 1], [4, 6],
+    [5, 3], [5, 8],
+    [6, 5],
+    [7, 1], [7, 7],
+    [8, 4],
+    [9, 2], [9, 6]
+  ],
+  // کلمات افقی و عمودی با محل شروع و طول کلمه
+  words: [
+    // --- افقی (Across) ---
+    { id: "H1_1", label: "۱ افقی (اول)", type: "across", row: 0, col: 0, length: 3, answer: "ارم", clue: "بهشت موعود" },
+    { id: "H1_2", label: "۱ افقی (دوم)", type: "across", row: 0, col: 4, length: 3, answer: "سعدی", clue: "شاعر گلستان" },
+    { id: "H2_1", label: "۲ افقی", type: "across", row: 1, col: 0, length: 5, answer: "ایران", clue: "کشور عزیزمان" },
+    { id: "H3_1", label: "۳ افقی", type: "across", row: 2, col: 3, length: 5, answer: "تهران", clue: "پایتخت ایران" },
+    
+    // --- عمودی (Down) ---
+    { id: "V1_1", label: "۱ عمودی", type: "down", row: 0, col: 0, length: 3, answer: "امیر", clue: "فرمانروا و پادشاه" },
+    { id: "V2_1", label: "۲ عمودی", type: "down", row: 0, col: 1, length: 5, answer: "رازی", clue: "کاشف الکل" },
+    { id: "V5_1", label: "۵ عمودی", type: "down", row: 0, col: 4, length: 5, answer: "سیروان", clue: "نام رودی در غرب ایران" }
+  ]
+};
 
 function toPersianDigits(num) {
   const farsiDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
@@ -35,11 +46,7 @@ class TelegramAPI {
   }
 
   async sendMessage(chatId, text, replyMarkup = null, replyToMessageId = null) {
-    const payload = {
-      chat_id: chatId,
-      text: text,
-      parse_mode: "HTML"
-    };
+    const payload = { chat_id: chatId, text: text, parse_mode: "HTML" };
     if (replyMarkup) payload.reply_markup = replyMarkup;
     if (replyToMessageId) payload.reply_to_message_id = replyToMessageId;
 
@@ -52,12 +59,7 @@ class TelegramAPI {
   }
 
   async editMessageText(chatId, messageId, text, replyMarkup = null) {
-    const payload = {
-      chat_id: chatId,
-      message_id: messageId,
-      text: text,
-      parse_mode: "HTML"
-    };
+    const payload = { chat_id: chatId, message_id: messageId, text: text, parse_mode: "HTML" };
     if (replyMarkup) payload.reply_markup = replyMarkup;
 
     const res = await fetch(`${this.baseUrl}/editMessageText`, {
@@ -72,36 +74,42 @@ class TelegramAPI {
     await fetch(`${this.baseUrl}/answerCallbackQuery`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        callback_query_id: callbackQueryId,
-        text: text,
-        show_alert: showAlert
-      })
+      body: JSON.stringify({ callback_query_id: callbackQueryId, text: text, show_alert: showAlert })
     });
   }
 }
 
 class CrosswordEngine {
   static renderTable(puzzle, solvedWordIds = []) {
-    let grid = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill("⬛"));
+    // ۱. ساخت شبکه‌ اولیه با خانه‌های خالی
+    let grid = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill("⬜"));
 
-    puzzle.words.forEach((w) => {
-      const isSolved = solvedWordIds.includes(w.id);
-      const chars = w.answer.split("");
-
-      chars.forEach((char, idx) => {
-        let r = w.startRow;
-        let c = w.startCol;
-        if (w.direction === "across") c += idx;
-        else r += idx;
-
-        if (r < puzzle.rows && c < puzzle.cols) {
-          grid[r][c] = isSolved ? char : "⬜";
-        }
-      });
+    // ۲. اعمال خانه‌های مشکی
+    puzzle.blocks.forEach(([r, c]) => {
+      if (r < puzzle.rows && c < puzzle.cols) {
+        grid[r][c] = "⬛";
+      }
     });
 
-    let tableStr = "🧩 <b>جدول کلمات متقاطع</b>\n\n";
+    // ۳. پر کردن حروف کلمات حل شده (با پشتیبانی از تقاطع‌ها)
+    puzzle.words.forEach((w) => {
+      if (solvedWordIds.includes(w.id)) {
+        const chars = w.answer.split("");
+        chars.forEach((char, idx) => {
+          let r = w.row;
+          let c = w.col;
+          if (w.type === "across") c += idx;
+          else r += idx;
+
+          if (r < puzzle.rows && c < puzzle.cols) {
+            grid[r][c] = char;
+          }
+        });
+      }
+    });
+
+    // ۴. ساخت خروجی متنی شبکه جدول
+    let tableStr = `🧩 <b>${puzzle.title}</b>\n\n`;
     for (let r = 0; r < puzzle.rows; r++) {
       tableStr += grid[r].join(" ") + "\n";
     }
@@ -109,47 +117,25 @@ class CrosswordEngine {
   }
 
   static renderQuestions(puzzle, solvedWordIds = []) {
-    let qStr = "📝 <b>راهنمای سوالات:</b>\n";
-    puzzle.words.forEach((w) => {
+    let qStr = "📝 <b>راهنمای سوالات:</b>\n\n<b>افقی:</b>\n";
+    
+    const acrossWords = puzzle.words.filter(w => w.type === "across");
+    const downWords = puzzle.words.filter(w => w.type === "down");
+
+    acrossWords.forEach((w) => {
       const isSolved = solvedWordIds.includes(w.id);
       const status = isSolved ? "✅" : "❓";
-      const dirText = w.direction === "across" ? "افقی" : "عمودی";
-      qStr += `${status} <b>${toPersianDigits(w.id)}.</b> (${dirText}) ${w.clue}\n`;
+      qStr += `${status} <b>${w.label}:</b> ${w.clue}\n`;
     });
+
+    qStr += "\n<b>عمودی:</b>\n";
+    downWords.forEach((w) => {
+      const isSolved = solvedWordIds.includes(w.id);
+      const status = isSolved ? "✅" : "❓";
+      qStr += `${status} <b>${w.label}:</b> ${w.clue}\n`;
+    });
+
     return qStr;
-  }
-}
-
-class DynamicGenerator {
-  static generatePuzzle(wordCount = 5) {
-    const shuffled = [...WORD_BANK].sort(() => 0.5 - Math.random());
-    const selectedWords = shuffled.slice(0, wordCount);
-
-    const puzzleWords = [];
-    let idCounter = 1;
-
-    selectedWords.forEach((item, index) => {
-      const direction = index % 2 === 0 ? "across" : "down";
-      let startRow = direction === "across" ? (index * 2) % 6 : 0;
-      let startCol = direction === "across" ? 0 : (index * 2 + 1) % 6;
-
-      puzzleWords.push({
-        id: idCounter++,
-        answer: item.word,
-        clue: item.question,
-        direction: direction,
-        startRow: startRow,
-        startCol: startCol
-      });
-    });
-
-    return {
-      id: "dynamic_" + Date.now(),
-      title: "جدول پویا",
-      rows: 6,
-      cols: 6,
-      words: puzzleWords
-    };
   }
 }
 
@@ -159,13 +145,11 @@ class DynamicGenerator {
 export default {
   async fetch(request, env, ctx) {
     if (request.method !== "POST") {
-      return new Response("OK - Crossword Bot Running", { status: 200 });
+      return new Response("OK - Classic Crossword Running", { status: 200 });
     }
 
     const token = env.TELEGRAM_BOT_TOKEN;
-    if (!token) {
-      return new Response("Bot Token Not Configured", { status: 500 });
-    }
+    if (!token) return new Response("Token Missing", { status: 500 });
 
     const telegram = new TelegramAPI(token);
     const kv = env.CROSSWORD_KV;
@@ -195,9 +179,9 @@ async function handleMessage(message, telegram, kv) {
     const command = text.split(" ")[0].toLowerCase().split("@")[0];
 
     if (command === "/start") {
-      await telegram.sendMessage(chatId, "سلام! برای شروع بازی جدول دستور /new را بفرستید.");
+      await telegram.sendMessage(chatId, "سلام! برای شروع جدول ۱۰×۱۰ کلاسیک دستور /new را بفرستید.");
     } else if (command === "/new") {
-      const puzzle = DynamicGenerator.generatePuzzle(5);
+      const puzzle = CLASSIC_PUZZLE;
       const state = {
         puzzleId: puzzle.id,
         solvedWordIds: [],
@@ -248,9 +232,9 @@ async function handleMessage(message, telegram, kv) {
     await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
 
     if (isAllSolved) {
-      await telegram.sendMessage(chatId, "🎉 آفرین! جدول به طور کامل حل شد!");
+      await telegram.sendMessage(chatId, "🎉 آفرین! تمام سوالات جدول با موفقیت حل شد!");
     } else {
-      await telegram.sendMessage(chatId, `✅ پاسخ سوال ${toPersianDigits(word.id)} درست بود!`);
+      await telegram.sendMessage(chatId, `✅ پاسخ ${word.label} درست بود!`);
     }
   } else {
     await telegram.sendMessage(chatId, "❌ پاسخ نادرست است، دوباره تلاش کنید.", null, message.message_id);
@@ -270,7 +254,13 @@ async function handleCallback(cb, telegram, kv) {
   const state = JSON.parse(rawState);
 
   if (data.startsWith("q_")) {
-    const qId = parseInt(data.replace("q_", ""), 10);
+    const qId = data.replace("q_", "");
+    const rawPuzzle = await kv.get(`puzzle:${chatId}`);
+    if (!rawPuzzle) return;
+    const puzzle = JSON.parse(rawPuzzle);
+
+    const word = puzzle.words.find(w => w.id === qId);
+
     if (state.solvedWordIds.includes(qId)) {
       await telegram.answerCallbackQuery(cb.id, "این سوال قبلاً حل شده!", true);
       return;
@@ -279,8 +269,8 @@ async function handleCallback(cb, telegram, kv) {
     state.activeQuestion[userId] = qId;
     await kv.put(`state:${chatId}`, JSON.stringify(state));
 
-    await telegram.answerCallbackQuery(cb.id, `سوال ${toPersianDigits(qId)} انتخاب شد.`);
-    await telegram.sendMessage(chatId, `پاسخ سوال ${toPersianDigits(qId)} را بنویسید:`);
+    await telegram.answerCallbackQuery(cb.id, `سوال ${word.label} انتخاب شد.`);
+    await telegram.sendMessage(chatId, `پاسخ <b>${word.label}</b> (${word.clue}) را بنویسید:`);
   }
 }
 
@@ -288,14 +278,14 @@ function buildKeyboard(puzzle, solvedWordIds) {
   const buttons = puzzle.words.map((w) => {
     const isSolved = solvedWordIds.includes(w.id);
     return {
-      text: isSolved ? `✅ ${toPersianDigits(w.id)}` : `${toPersianDigits(w.id)}`,
+      text: isSolved ? `✅ ${w.label}` : `❓ ${w.label}`,
       callback_data: isSolved ? "ignore" : `q_${w.id}`
     };
   });
 
   const rows = [];
   while (buttons.length > 0) {
-    rows.push(buttons.splice(0, 5));
+    rows.push(buttons.splice(0, 3));
   }
   return { inline_keyboard: rows };
 }
