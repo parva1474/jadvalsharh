@@ -1,68 +1,134 @@
 // ==========================================
-// ۱. دیتابیس جدول ۱۰ در ۱۰ کلاسیک
+// ۱. دیتابیس جامع کلمات و سوالات
 // ==========================================
-const CLASSIC_PUZZLE = {
-  id: "classic_10x10_1",
-  title: "جدول کلاسیک شماره ۱",
-  rows: 10,
-  cols: 10,
-  // خانه‌های مشکی
-  blocks: [
-    [0, 3], [0, 7],
-    [1, 5],
-    [2, 2], [2, 8],
-    [3, 4],
-    [4, 1], [4, 6],
-    [5, 3], [5, 8],
-    [6, 5],
-    [7, 1], [7, 7],
-    [8, 4],
-    [9, 2], [9, 6]
-  ],
-  // راهنمای خطی (مشابه روزنامه‌ها)
-  clues: {
-    across: [
-      { row: 1, text: "بهشت موعود - شاعر گلستان" },
-      { row: 2, text: "کشور عزیزمان - نام قدیمی شیراز" },
-      { row: 3, text: "پایتخت ایران - بلندترین قله ایران" },
-      { row: 4, text: "شاعر شاهنامه - پهنه آبی جنوب" },
-      { row: 5, text: "پرنده افسانه‌ای - رود مرزی ایران" },
-      { row: 6, text: "فرزند رستم - بنیان‌گذار هخامنشیان" },
-      { row: 7, text: "کاشف الکل - لسان‌الغیب شیرازی" },
-      { row: 8, text: "سرایش‌گر بوستان - نام دریاچه خزر" },
-      { row: 9, text: "از کوه‌های تبریز - پادشاه هخامنشی" },
-      { row: 10, text: "نماد تهران - قهرمان نامدار" }
-    ],
-    down: [
-      { col: 1, text: "فرمانروا - کاشف الکل - طویل‌ترین رود" },
-      { col: 2, text: "شاعر بوستان - پهنه آبی جنوب" },
-      { col: 3, text: "پایتخت ایران - فرزند رستم" },
-      { col: 4, text: "بلندترین قله - پرنده افسانه‌ای" },
-      { col: 5, text: "نام رودی در غرب - شاعر شاهنامه" },
-      { col: 6, text: "بنیان‌گذار هخامنشیان - کاشف الکل" },
-      { col: 7, text: "لسان‌الغیب شیرازی - بهشت موعود" },
-      { col: 8, text: "قهرمان نامدار - نام دریاچه خزر" },
-      { col: 9, text: "از کوه‌های تبریز - پادشاه هخامنشی" },
-      { col: 10, text: "نماد تهران - رود مرزی ایران" }
-    ]
-  },
-  // کلمات جدول جهت بررسی پاسخ‌ها
-  words: [
-    { id: "H1_1", label: "۱ افقی (اول)", type: "across", row: 0, col: 0, length: 3, answer: "ارم", clue: "بهشت موعود" },
-    { id: "H1_2", label: "۱ افقی (دوم)", type: "across", row: 0, col: 4, length: 3, answer: "سعدی", clue: "شاعر گلستان" },
-    { id: "H2_1", label: "۲ افقی", type: "across", row: 1, col: 0, length: 5, answer: "ایران", clue: "کشور عزیزمان" },
-    { id: "H3_1", label: "۳ افقی", type: "across", row: 2, col: 3, length: 5, answer: "تهران", clue: "پایتخت ایران" },
-    { id: "V1_1", label: "۱ عمودی", type: "down", row: 0, col: 0, length: 3, answer: "امیر", clue: "فرمانروا" },
-    { id: "V2_1", label: "۲ عمودی", type: "down", row: 0, col: 1, length: 5, answer: "رازی", clue: "کاشف الکل" },
-    { id: "V5_1", label: "۵ عمودی", type: "down", row: 0, col: 4, length: 5, answer: "سیروان", clue: "نام رودی در غرب ایران" }
-  ]
-};
+const WORD_DATABASE = [
+  // کلمات ۳ حرفی
+  { word: "ارم", clue: "بهشت موعود" },
+  { word: "امیر", clue: "فرمانروا و پادشاه" },
+  { word: "رازی", clue: "کاشف الکل" },
+  { word: "حافظ", clue: "لسان‌الغیب شیرازی" },
+  { word: "سعدی", clue: "شاعر گلستان" },
+  { word: "سهند", clue: "کوهی در آذربایجان شرقی" },
+  { word: "رستم", clue: "قهرمان نامدار شاهنامه" },
+  { word: "اروند", clue: "رود مرزی ایران و عراق" },
+  { word: "زاگرس", clue: "رشته‌کوه غربی ایران" },
+  { word: "البرز", clue: "رشته‌کوه شمالی ایران" },
+  { word: "سیمرغ", clue: "پرنده افسانه‌ای" },
+  { word: "سهراب", clue: "فرزند رستم" },
+  { word: "کارون", clue: "طولانی‌ترین رود ایران" },
+  { word: "کاسپین", clue: "نام دیگر دریاچه خزر" },
+  { word: "ایران", clue: "کشور عزیزمان" },
+  { word: "تهران", clue: "پایتخت ایران" },
+  { word: "ازادی", clue: "برج معروف تهران" },
+  { word: "دماوند", clue: "بلندترین قله ایران" },
+  { word: "کوروش", clue: "بنیان‌گذار هخامنشیان" },
+  { word: "داریوش", clue: "پادشاه هخامنشی" },
+  { word: "شیراز", clue: "شهر شعر و ادب" },
+  { word: "تبریز", clue: "شهر اولین‌ها" },
+  { word: "اصفهان", clue: "نصف جهان" },
+  { word: "مشهد", clue: "پایتخت معنوی ایران" },
+  { word: "فردوسی", clue: "شاعر شاهنامه" }
+];
 
 const NUM_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
 
 function toPersianDigits(num) {
   const farsiDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
   return num.toString().replace(/\d/g, (x) => farsiDigits[x]);
+}
+
+// ==========================================
+// ۲. موتور ساخت بی‌نهایت جدول ۱۰ در ۱۰
+// ==========================================
+class InfinitePuzzleGenerator {
+  static generate() {
+    const rows = 10;
+    const cols = 10;
+    
+    // الگوی خانه‌های مشکی راندوم و متقارن
+    const blocks = [];
+    const blockCount = 16;
+    while (blocks.length < blockCount) {
+      const r = Math.floor(Math.random() * 5);
+      const c = Math.floor(Math.random() * 10);
+      if (!blocks.some(([br, bc]) => br === r && bc === c)) {
+        blocks.push([r, c]);
+        blocks.push([9 - r, 9 - c]); // تقارن محوری
+      }
+    }
+
+    // انتخاب کلمات تصادفی
+    const shuffled = [...WORD_DATABASE].sort(() => 0.5 - Math.random());
+    const words = [];
+    const cluesAcross = {};
+    const cluesDown = {};
+
+    for (let i = 1; i <= 10; i++) {
+      cluesAcross[i] = [];
+      cluesDown[i] = [];
+    }
+
+    let wordIdx = 0;
+    // ساخت چند کلمه کلیدی در جدول
+    for (let r = 0; r < 10; r += 2) {
+      if (wordIdx < shuffled.length) {
+        const item = shuffled[wordIdx++];
+        words.push({
+          id: `H${r+1}_1`,
+          label: `${toPersianDigits(r+1)} افقی`,
+          type: "across",
+          row: r,
+          col: 0,
+          length: item.word.length,
+          answer: item.word,
+          clue: item.clue
+        });
+        cluesAcross[r+1].push(item.clue);
+      }
+    }
+
+    for (let c = 0; c < 10; c += 3) {
+      if (wordIdx < shuffled.length) {
+        const item = shuffled[wordIdx++];
+        words.push({
+          id: `V${c+1}_1`,
+          label: `${toPersianDigits(c+1)} عمودی`,
+          type: "down",
+          row: 0,
+          col: c,
+          length: item.word.length,
+          answer: item.word,
+          clue: item.clue
+        });
+        cluesDown[c+1].push(item.clue);
+      }
+    }
+
+    // ساخت راهنمای روزنامه‌ای
+    const acrossCluesList = [];
+    const downCluesList = [];
+
+    for (let i = 1; i <= 10; i++) {
+      acrossCluesList.push({
+        row: i,
+        text: cluesAcross[i].length > 0 ? cluesAcross[i].join(" - ") : "---"
+      });
+      downCluesList.push({
+        col: i,
+        text: cluesDown[i].length > 0 ? cluesDown[i].join(" - ") : "---"
+      });
+    }
+
+    return {
+      id: "puzzle_" + Date.now(),
+      title: `جدول کلاسیک ۱۰×۱۰ (کد ${Math.floor(Math.random()*9000 + 1000)})`,
+      rows: rows,
+      cols: cols,
+      blocks: blocks,
+      clues: { across: acrossCluesList, down: downCluesList },
+      words: words
+    };
+  }
 }
 
 class TelegramAPI {
@@ -109,14 +175,12 @@ class CrosswordEngine {
   static renderTable(puzzle, solvedWordIds = []) {
     let grid = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill("⬜"));
 
-    // اعمال خانه‌های مشکی
     puzzle.blocks.forEach(([r, c]) => {
       if (r < puzzle.rows && c < puzzle.cols) {
         grid[r][c] = "⬛";
       }
     });
 
-    // پر کردن کلمات حل شده
     puzzle.words.forEach((w) => {
       if (solvedWordIds.includes(w.id)) {
         const chars = w.answer.split("");
@@ -133,14 +197,10 @@ class CrosswordEngine {
       }
     });
 
-    // رندر جدول با اعداد شماره ردیف و ستون و بدون فاصله اضافه برای جلوگیری از شکستگی
     let tableStr = `🧩 <b>${puzzle.title}</b>\n\n`;
-    
-    // سطر بالای جدول (شماره ستون‌ها)
     tableStr += "▫️" + NUM_EMOJIS.slice(0, puzzle.cols).join("") + "\n";
 
     for (let r = 0; r < puzzle.rows; r++) {
-      // شماره ردیف در ابتدای هر سطر
       tableStr += NUM_EMOJIS[r] + grid[r].join("");
       tableStr += "\n";
     }
@@ -163,13 +223,10 @@ class CrosswordEngine {
   }
 }
 
-// ==========================================
-// ۲. بخش اصلی Cloudflare Worker
-// ==========================================
 export default {
   async fetch(request, env, ctx) {
     if (request.method !== "POST") {
-      return new Response("OK - Crossword Bot Running", { status: 200 });
+      return new Response("OK - Infinite Crossword Bot Running", { status: 200 });
     }
 
     const token = env.TELEGRAM_BOT_TOKEN;
@@ -203,9 +260,10 @@ async function handleMessage(message, telegram, kv) {
     const command = text.split(" ")[0].toLowerCase().split("@")[0];
 
     if (command === "/start") {
-      await telegram.sendMessage(chatId, "سلام! برای شروع جدول ۱۰×۱۰ کلاسیک دستور /new را بفرستید.");
+      await telegram.sendMessage(chatId, "سلام! برای دریافت جدول ۱۰×۱۰ جدید دستور /new را بفرستید.");
     } else if (command === "/new") {
-      const puzzle = CLASSIC_PUZZLE;
+      // ساخت یک جدول کاملاً جدید و راندوم
+      const puzzle = InfinitePuzzleGenerator.generate();
       const state = {
         puzzleId: puzzle.id,
         solvedWordIds: [],
@@ -256,7 +314,7 @@ async function handleMessage(message, telegram, kv) {
     await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
 
     if (isAllSolved) {
-      await telegram.sendMessage(chatId, "🎉 آفرین! تمام کلمات جدول حل شد!");
+      await telegram.sendMessage(chatId, "🎉 آفرین! تمام کلمات این جدول با موفقیت حل شد!");
     } else {
       await telegram.sendMessage(chatId, `✅ پاسخ ${word.label} درست بود!`);
     }
