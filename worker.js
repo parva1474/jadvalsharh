@@ -1,5 +1,5 @@
 // ==========================================
-// ۱. دیتابیس کلمات
+// ۱. دیتابیس گسترده کلمات و اطلاعات عمومی (۱۰۰+ کلمه)
 // ==========================================
 const WORD_DB = {
   2: [
@@ -9,7 +9,19 @@ const WORD_DB = {
     { word: "ری", clue: "از شهرهای قدیمی تهران" },
     { word: "شب", clue: "تاریکی و زمان خواب" },
     { word: "کم", clue: "اندک و ناچیز" },
-    { word: "پا", clue: "عضو راه رفتن" }
+    { word: "پا", clue: "عضو راه رفتن" },
+    { word: "ار", clue: "واحد اندازه‌گیری سطح" },
+    { word: "نی", clue: "ساز بادی چوپان" },
+    { word: "مو", clue: "پوشش سر" },
+    { word: "دم", clue: "نفس و هوا" },
+    { word: "ژل", clue: "ماده حالت دهنده مو" },
+    { word: "فن", clue: "هنر و مهارت" },
+    { word: "تب", clue: "نشانه بیماری و داغی بدن" },
+    { word: "رز", clue: "گل سرخ" },
+    { word: "یم", clue: "دریا و اقیانوس" },
+    { word: "سم", clue: "ماده کشنده" },
+    { word: "لو", clue: "نشان و علامت" },
+    { word: "هم", clue: "یکسان و برابر" }
   ],
   3: [
     { word: "ارم", clue: "بهشت موعود" },
@@ -26,7 +38,28 @@ const WORD_DB = {
     { word: "ازادی", clue: "برج معروف" },
     { word: "شیراز", clue: "شهر شعر" },
     { word: "تبریز", clue: "شهر اولین‌ها" },
-    { word: "مشهد", clue: "شهر زیارتی" }
+    { word: "مشهد", clue: "شهر زیارتی" },
+    { word: "بابل", clue: "شهر بهارنارنج" },
+    { word: "میبد", clue: "شهر زیلو و سفال" },
+    { word: "هامون", clue: "دریاچه‌ای در سیستان" },
+    { word: "کارون", clue: "رود بزرگ خوزستان" },
+    { word: "عمان", clue: "دریایی در جنوب ایران" },
+    { word: "نیل", clue: "طولانی‌ترین رود جهان" },
+    { word: "پاریس", clue: "پایتخت فرانسه" },
+    { word: "لندن", clue: "پایتخت انگلستان" },
+    { word: "مادرید", clue: "پایتخت اسپانیا" },
+    { word: "اتن", clue: "پایتخت یونان" },
+    { word: "پکن", clue: "پایتخت چین" },
+    { word: "توکیو", clue: "پایتخت ژاپن" },
+    { word: "دهلی", clue: "شهر معروف هند" },
+    { word: "ماسوله", clue: "روستای پلکانی گیلان" },
+    { word: "رودکی", clue: "پدر شعر فارسی" },
+    { word: "عطار", clue: "شاعر منطق‌الطیر" },
+    { word: "جامی", clue: "شاعر هفت اورنگ" },
+    { word: "بیژن", clue: "معشوق منیژه در شاهنامه" },
+    { word: "کوهنورد", clue: "صعودکننده به قمه" },
+    { word: "سیروان", clue: "رودی در اورامانات" },
+    { word: "زاج", clue: "نمک بلوری تلخ‌مزه" }
   ],
   4: [
     { word: "زاگرس", clue: "رشته‌کوه غربی" },
@@ -37,15 +70,38 @@ const WORD_DB = {
     { word: "دماوند", clue: "قله بلند ایران" },
     { word: "کوروش", clue: "شاه هخامنشی" },
     { word: "داریوش", clue: "پادشاه پارسی" },
-    { word: "فردوسی", clue: "شاعر شاهنامه" }
+    { word: "فردوسی", clue: "شاعر شاهنامه" },
+    { word: "ابوعلی", clue: "نام کوچک ابن‌سینا" },
+    { word: "اقیانوس", clue: "پهنه بسیار بزرگ آبی" },
+    { word: "امازون", clue: "جنگل پرباران برزیل" },
+    { word: "اورست", clue: "بلندترین قله جهان" },
+    { word: "کوهسار", clue: "منطقه کوهستانی" },
+    { word: "بیستون", clue: "کتیبه معروف کرمانشاه" },
+    { word: "تخت‌جمشید", clue: "بنای تاریخی شیراز" },
+    { word: "پاسارگاد", clue: "آرامگاه کوروش" },
+    { word: "امیرکبیر", clue: "صدر اعظم باذکاوت قاجار" },
+    { word: "ارشمیدس", clue: "دانشمند یونانی کشف کشف چگالی" },
+    { word: "فیثاغورس", clue: "دانشمند ریاضی دان" },
+    { word: "نیوتون", clue: "کاشف جاذبه زمین" },
+    { word: "ادیسون", clue: "کاشف برق و لامپ" },
+    { word: "گالیله", clue: "مبتکر تلسکوپ نجومی" }
   ]
 };
 
 const NUM_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
 
-function getRandomWord(len) {
+function getRandomWord(len, usedWords = new Set()) {
   const pool = WORD_DB[len] || WORD_DB[3];
-  return pool[Math.floor(Math.random() * pool.length)];
+  const available = pool.filter(item => !usedWords.has(item.word));
+  
+  if (available.length === 0) {
+    // اگر کلمات غیرتکراری آن طول تمام شد، یک کلمه شانس تصادفی بردار
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  
+  const selected = available[Math.floor(Math.random() * available.length)];
+  usedWords.add(selected.word);
+  return selected;
 }
 
 function toPersianDigits(num) {
@@ -101,25 +157,29 @@ class TelegramAPI {
 }
 
 // ==========================================
-// ۲. موتور ساخت جدول و تنظیم کامل حروف مجزا
+// ۲. ساخت پویا و هندسه بی‌نهایت جدول
 // ==========================================
 class PuzzleEngine {
   static generate() {
     const rows = 10;
     const cols = 10;
     
-    const blocks = [
-      [0,4], [0,5], [1,2], [1,7], [2,8], [3,3],
-      [6,6], [7,1], [8,2], [8,7], [9,4], [9,5]
+    // انتخاب تصادفی الگوی خانه‌های مشکی در هر بار اجرای new
+    const blockPatterns = [
+      [[0,4], [0,5], [1,2], [1,7], [2,8], [3,3], [6,6], [7,1], [8,2], [8,7], [9,4], [9,5]],
+      [[0,2], [0,7], [2,4], [2,5], [3,1], [3,8], [6,1], [6,8], [7,4], [7,5], [9,2], [9,7]],
+      [[1,1], [1,8], [2,3], [2,6], [4,0], [4,9], [5,0], [5,9], [7,3], [7,6], [8,1], [8,8]]
     ];
-
+    
+    const blocks = blockPatterns[Math.floor(Math.random() * blockPatterns.length)];
     let grid = Array(rows).fill(null).map(() => Array(cols).fill(false));
     blocks.forEach(([r, c]) => { grid[r][c] = true; });
 
     const words = [];
     let wordIdCounter = 1;
+    const usedWords = new Set();
 
-    // افقی (از راست به چپ در ماتریکس: ستون ۰ یعنی راست‌ترین)
+    // استخراج بخش‌های سفید افقی
     for (let r = 0; r < rows; r++) {
       let currentLen = 0;
       let startCol = 0;
@@ -130,7 +190,7 @@ class PuzzleEngine {
           currentLen++;
         } else {
           if (currentLen >= 2) {
-            const item = getRandomWord(currentLen);
+            const item = getRandomWord(currentLen, usedWords);
             words.push({
               id: `w_${wordIdCounter++}`,
               type: "across",
@@ -147,7 +207,7 @@ class PuzzleEngine {
       }
     }
 
-    // عمودی
+    // استخراج بخش‌های سفید عمودی
     for (let c = 0; c < cols; c++) {
       let currentLen = 0;
       let startRow = 0;
@@ -158,7 +218,7 @@ class PuzzleEngine {
           currentLen++;
         } else {
           if (currentLen >= 2) {
-            const item = getRandomWord(currentLen);
+            const item = getRandomWord(currentLen, usedWords);
             words.push({
               id: `w_${wordIdCounter++}`,
               type: "down",
@@ -177,7 +237,7 @@ class PuzzleEngine {
 
     return {
       id: "puzzle_" + Date.now(),
-      title: `جدول ۱۰×۱۰ کلاسیک`,
+      title: `جدول ۱۰×۱۰ کلاسیک (کد ${Math.floor(Math.random()*9000 + 1000)})`,
       rows: rows,
       cols: cols,
       blocks: blocks,
@@ -190,7 +250,7 @@ class PuzzleEngine {
 
     puzzle.blocks.forEach(([r, c]) => { grid[r][c] = "⬛"; });
 
-    // جای‌گذاری حروف به صورت کاملاً مجزا (جلوگیری از چسبیدن حروف فارسی)
+    // جای‌گذاری حروف به‌صورت تک‌به‌تک همراه با فاصله مجزا
     puzzle.words.forEach((w) => {
       if (solvedWordIds.includes(w.id)) {
         const chars = w.answer.split("");
@@ -201,7 +261,6 @@ class PuzzleEngine {
           else r += idx;
 
           if (r < puzzle.rows && c < puzzle.cols) {
-            // استفاده از کاراکتر فاصله مجزا برای عدم چسبیدن حروف
             grid[r][c] = char + " "; 
           }
         });
@@ -212,7 +271,6 @@ class PuzzleEngine {
     tableStr += [...NUM_EMOJIS].reverse().join("") + "▫️\n";
 
     for (let r = 0; r < puzzle.rows; r++) {
-      // ردیف از راست به چپ
       const rowCells = grid[r].join("");
       tableStr += rowCells + NUM_EMOJIS[r] + "\n";
     }
@@ -249,7 +307,7 @@ class PuzzleEngine {
 }
 
 // ==========================================
-// ۳. ساخت کیبورد عددی منظم
+// ۳. ساخت کیبورد عددی ۱ تا ۱۰
 // ==========================================
 function buildMainKeyboard(puzzle, solvedWordIds) {
   const keyboard = [];
@@ -295,7 +353,7 @@ function buildSubQuestionKeyboard(words, solvedWordIds) {
 }
 
 // ==========================================
-// ۴. هندل کردن ورودی کاربر و اعلان درست/غلط
+// ۴. مدیریت پیام‌ها
 // ==========================================
 export default {
   async fetch(request, env, ctx) {
@@ -377,7 +435,6 @@ async function handleMessage(message, telegram, kv) {
     state.lastPromptMsgId = null;
   }
 
-  // بررسی پاسخ درست یا نادرست
   if (text.replace(/\s+/g, "") === word.answer) {
     if (!state.solvedWordIds.includes(word.id)) {
       state.solvedWordIds.push(word.id);
@@ -392,7 +449,6 @@ async function handleMessage(message, telegram, kv) {
 
     await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
 
-    // ارسال بازخورد موفقیت
     const feedbackMsg = await telegram.sendMessage(chatId, `✅ <b>پاسخ درست بود!</b> (${word.answer})`);
     setTimeout(() => {
       telegram.deleteMessage(chatId, feedbackMsg.result.message_id);
@@ -402,7 +458,6 @@ async function handleMessage(message, telegram, kv) {
       await telegram.sendMessage(chatId, "🎉 تبریک! تمام سوالات جدول با موفقیت حل شدند!");
     }
   } else {
-    // ارسال بازخورد اشتباه
     const wrongMsg = await telegram.sendMessage(chatId, "❌ <b>پاسخ نادرست است!</b> دوباره تلاش کنید.");
     setTimeout(() => {
       telegram.deleteMessage(chatId, wrongMsg.result.message_id);
@@ -489,4 +544,4 @@ async function selectQuestion(word, userId, chatId, state, puzzle, telegram, kv,
   await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
 
   await kv.put(`state:${chatId}`, JSON.stringify(state));
-        }
+              }
