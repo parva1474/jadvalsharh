@@ -2,7 +2,6 @@
 // ۱. دیتابیس جامع کلمات و سوالات
 // ==========================================
 const WORD_DATABASE = [
-  // کلمات ۳ حرفی
   { word: "ارم", clue: "بهشت موعود" },
   { word: "امیر", clue: "فرمانروا و پادشاه" },
   { word: "رازی", clue: "کاشف الکل" },
@@ -37,27 +36,74 @@ function toPersianDigits(num) {
   return num.toString().replace(/\d/g, (x) => farsiDigits[x]);
 }
 
+class TelegramAPI {
+  constructor(token) {
+    this.token = token;
+    this.baseUrl = `https://api.telegram.org/bot${token}`;
+  }
+
+  async sendMessage(chatId, text, replyMarkup = null, replyToMessageId = null) {
+    const payload = { chat_id: chatId, text: text, parse_mode: "HTML" };
+    if (replyMarkup) payload.reply_markup = replyMarkup;
+    if (replyToMessageId) payload.reply_to_message_id = replyToMessageId;
+
+    const res = await fetch(`${this.baseUrl}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
+  }
+
+  async editMessageText(chatId, messageId, text, replyMarkup = null) {
+    const payload = { chat_id: chatId, message_id: messageId, text: text, parse_mode: "HTML" };
+    if (replyMarkup) payload.reply_markup = replyMarkup;
+
+    const res = await fetch(`${this.baseUrl}/editMessageText`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
+  }
+
+  async deleteMessage(chatId, messageId) {
+    await fetch(`${this.baseUrl}/deleteMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId })
+    });
+  }
+
+  async answerCallbackQuery(callbackQueryId, text = "", showAlert = false) {
+    await fetch(`${this.baseUrl}/answerCallbackQuery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ callback_query_id: callbackQueryId, text: text, show_alert: showAlert })
+    });
+  }
+}
+
 // ==========================================
-// ۲. موتور ساخت بی‌نهایت جدول ۱۰ در ۱۰
+// ۲. ساخت پویا و هندسه جدول
 // ==========================================
 class InfinitePuzzleGenerator {
   static generate() {
     const rows = 10;
     const cols = 10;
     
-    // الگوی خانه‌های مشکی راندوم و متقارن
+    // خانه‌های مشکی متقارن
     const blocks = [];
-    const blockCount = 16;
+    const blockCount = 14;
     while (blocks.length < blockCount) {
       const r = Math.floor(Math.random() * 5);
       const c = Math.floor(Math.random() * 10);
       if (!blocks.some(([br, bc]) => br === r && bc === c)) {
         blocks.push([r, c]);
-        blocks.push([9 - r, 9 - c]); // تقارن محوری
+        blocks.push([9 - r, 9 - c]);
       }
     }
 
-    // انتخاب کلمات تصادفی
     const shuffled = [...WORD_DATABASE].sort(() => 0.5 - Math.random());
     const words = [];
     const cluesAcross = {};
@@ -69,7 +115,6 @@ class InfinitePuzzleGenerator {
     }
 
     let wordIdx = 0;
-    // ساخت چند کلمه کلیدی در جدول
     for (let r = 0; r < 10; r += 2) {
       if (wordIdx < shuffled.length) {
         const item = shuffled[wordIdx++];
@@ -104,7 +149,6 @@ class InfinitePuzzleGenerator {
       }
     }
 
-    // ساخت راهنمای روزنامه‌ای
     const acrossCluesList = [];
     const downCluesList = [];
 
@@ -121,53 +165,13 @@ class InfinitePuzzleGenerator {
 
     return {
       id: "puzzle_" + Date.now(),
-      title: `جدول کلاسیک ۱۰×۱۰ (کد ${Math.floor(Math.random()*9000 + 1000)})`,
+      title: `جدول ۱۰×۱۰ کلاسیک (کد ${Math.floor(Math.random()*9000 + 1000)})`,
       rows: rows,
       cols: cols,
       blocks: blocks,
       clues: { across: acrossCluesList, down: downCluesList },
       words: words
     };
-  }
-}
-
-class TelegramAPI {
-  constructor(token) {
-    this.token = token;
-    this.baseUrl = `https://api.telegram.org/bot${token}`;
-  }
-
-  async sendMessage(chatId, text, replyMarkup = null, replyToMessageId = null) {
-    const payload = { chat_id: chatId, text: text, parse_mode: "HTML" };
-    if (replyMarkup) payload.reply_markup = replyMarkup;
-    if (replyToMessageId) payload.reply_to_message_id = replyToMessageId;
-
-    const res = await fetch(`${this.baseUrl}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    return await res.json();
-  }
-
-  async editMessageText(chatId, messageId, text, replyMarkup = null) {
-    const payload = { chat_id: chatId, message_id: messageId, text: text, parse_mode: "HTML" };
-    if (replyMarkup) payload.reply_markup = replyMarkup;
-
-    const res = await fetch(`${this.baseUrl}/editMessageText`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    return await res.json();
-  }
-
-  async answerCallbackQuery(callbackQueryId, text = "", showAlert = false) {
-    await fetch(`${this.baseUrl}/answerCallbackQuery`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ callback_query_id: callbackQueryId, text: text, show_alert: showAlert })
-    });
   }
 }
 
@@ -181,6 +185,7 @@ class CrosswordEngine {
       }
     });
 
+    // پر کردن تک‌تک حروف کلمات حل‌شده در خانه‌ها
     puzzle.words.forEach((w) => {
       if (solvedWordIds.includes(w.id)) {
         const chars = w.answer.split("");
@@ -198,18 +203,21 @@ class CrosswordEngine {
     });
 
     let tableStr = `🧩 <b>${puzzle.title}</b>\n\n`;
-    tableStr += "▫️" + NUM_EMOJIS.slice(0, puzzle.cols).join("") + "\n";
+    
+    // شماره ستون‌ها (راست به چپ)
+    const colHeader = [...NUM_EMOJIS].reverse().join("");
+    tableStr += colHeader + "▫️\n";
 
     for (let r = 0; r < puzzle.rows; r++) {
-      tableStr += NUM_EMOJIS[r] + grid[r].join("");
-      tableStr += "\n";
+      // معکوس کردن ردیف جهت ساختار راست به چپ RTL
+      const rowCells = [...grid[r]].reverse().join("");
+      tableStr += rowCells + NUM_EMOJIS[r] + "\n";
     }
     return tableStr + "\n";
   }
 
   static renderQuestions(puzzle) {
     let qStr = "📝 <b>راهنمای سوالات:</b>\n\n<b>افقی:</b>\n";
-
     puzzle.clues.across.forEach((c) => {
       qStr += `<b>${toPersianDigits(c.row)}.</b> ${c.text}\n`;
     });
@@ -221,12 +229,45 @@ class CrosswordEngine {
 
     return qStr;
   }
+
+  // بررسی حروف از قبل کشف‌شده در تقاطع‌ها
+  static getPatternHint(puzzle, word, solvedWordIds) {
+    let currentGrid = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill("⬜"));
+    
+    puzzle.words.forEach((w) => {
+      if (solvedWordIds.includes(w.id)) {
+        const chars = w.answer.split("");
+        chars.forEach((char, idx) => {
+          let r = w.row;
+          let c = w.col;
+          if (w.type === "across") c += idx;
+          else r += idx;
+          currentGrid[r][c] = char;
+        });
+      }
+    });
+
+    let pattern = [];
+    for (let idx = 0; idx < word.length; idx++) {
+      let r = word.row;
+      let c = word.col;
+      if (word.type === "across") c += idx;
+      else r += idx;
+
+      pattern.push(currentGrid[r][c]);
+    }
+
+    return pattern.join(" ");
+  }
 }
 
+// ==========================================
+// ۳. بخش اصلی Cloudflare Worker
+// ==========================================
 export default {
   async fetch(request, env, ctx) {
     if (request.method !== "POST") {
-      return new Response("OK - Infinite Crossword Bot Running", { status: 200 });
+      return new Response("OK - Crossword Bot Running", { status: 200 });
     }
 
     const token = env.TELEGRAM_BOT_TOKEN;
@@ -260,14 +301,14 @@ async function handleMessage(message, telegram, kv) {
     const command = text.split(" ")[0].toLowerCase().split("@")[0];
 
     if (command === "/start") {
-      await telegram.sendMessage(chatId, "سلام! برای دریافت جدول ۱۰×۱۰ جدید دستور /new را بفرستید.");
+      await telegram.sendMessage(chatId, "سلام! برای شروع جدول ۱۰×۱۰ جدید دستور /new را بفرستید.");
     } else if (command === "/new") {
-      // ساخت یک جدول کاملاً جدید و راندوم
       const puzzle = InfinitePuzzleGenerator.generate();
       const state = {
         puzzleId: puzzle.id,
         solvedWordIds: [],
         activeQuestion: {},
+        lastPromptMsgId: null,
         messageId: null
       };
 
@@ -299,6 +340,15 @@ async function handleMessage(message, telegram, kv) {
   const word = puzzle.words.find((w) => w.id === activeQId);
   if (!word) return;
 
+  // پاک کردن پیام پاسخ کاربر جهت خلوت ماندن چت
+  await telegram.deleteMessage(chatId, message.message_id);
+
+  // پاک کردن پیام سوال قبلی
+  if (state.lastPromptMsgId) {
+    await telegram.deleteMessage(chatId, state.lastPromptMsgId);
+    state.lastPromptMsgId = null;
+  }
+
   if (text.replace(/\s+/g, "") === word.answer) {
     if (!state.solvedWordIds.includes(word.id)) {
       state.solvedWordIds.push(word.id);
@@ -314,12 +364,13 @@ async function handleMessage(message, telegram, kv) {
     await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
 
     if (isAllSolved) {
-      await telegram.sendMessage(chatId, "🎉 آفرین! تمام کلمات این جدول با موفقیت حل شد!");
-    } else {
-      await telegram.sendMessage(chatId, `✅ پاسخ ${word.label} درست بود!`);
+      await telegram.sendMessage(chatId, "🎉 آفرین! تمام کلمات جدول با موفقیت حل شد!");
     }
   } else {
-    await telegram.sendMessage(chatId, "❌ پاسخ نادرست است، دوباره تلاش کنید.", null, message.message_id);
+    const wrongMsg = await telegram.sendMessage(chatId, "❌ پاسخ نادرست است، دوباره تلاش کنید.");
+    setTimeout(() => {
+      telegram.deleteMessage(chatId, wrongMsg.result.message_id);
+    }, 3000);
   }
 }
 
@@ -349,25 +400,42 @@ async function handleCallback(cb, telegram, kv) {
     }
 
     state.activeQuestion[userId] = qId;
-    await kv.put(`state:${chatId}`, JSON.stringify(state));
 
+    // پاک کردن پیام سوال قبلی در صورت وجود
+    if (state.lastPromptMsgId) {
+      await telegram.deleteMessage(chatId, state.lastPromptMsgId);
+    }
+
+    const patternHint = CrosswordEngine.getPatternHint(puzzle, word, state.solvedWordIds);
+    
     await telegram.answerCallbackQuery(cb.id, `سوال ${word.label} انتخاب شد.`);
-    await telegram.sendMessage(chatId, `پاسخ <b>${word.label}</b> (${word.clue}) را بنویسید:`);
+    
+    const promptMsg = await telegram.sendMessage(
+      chatId, 
+      `پاسخ <b>${word.label}</b> (${word.clue}) را بنویسید:\n📏 <b>تعداد حروف:</b> ${toPersianDigits(word.length)} حرفی\n🧩 <b>راهنما:</b> ${patternHint}`
+    );
+
+    if (promptMsg && promptMsg.result) {
+      state.lastPromptMsgId = promptMsg.result.message_id;
+    }
+
+    await kv.put(`state:${chatId}`, JSON.stringify(state));
   }
 }
 
 function buildKeyboard(puzzle, solvedWordIds) {
-  const buttons = puzzle.words.map((w) => {
-    const isSolved = solvedWordIds.includes(w.id);
+  const availableWords = puzzle.words.filter(w => !solvedWordIds.includes(w.id));
+  
+  const buttons = availableWords.map((w) => {
     return {
-      text: isSolved ? `✅ ${w.label}` : `❓ ${w.label}`,
-      callback_data: isSolved ? "ignore" : `q_${w.id}`
+      text: `❓ ${w.label}`,
+      callback_data: `q_${w.id}`
     };
   });
 
   const rows = [];
   while (buttons.length > 0) {
-    rows.push(buttons.splice(0, 3));
+    rows.push(buttons.splice(0, 2));
   }
   return { inline_keyboard: rows };
-}
+        }
