@@ -223,10 +223,7 @@ class PuzzleEngine {
         }
       });
     });
-    return grid;
-  }
-
-  static renderTable(puzzle, solvedWordIds = [], revealedCells = {}) {
+      static renderTable(puzzle, solvedWordIds = [], revealedCells = {}) {
     let gridDisplay = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill("⬜"));
     puzzle.blocks.forEach(([r, c]) => { gridDisplay[r][c] = "⬛"; });
 
@@ -236,6 +233,34 @@ class PuzzleEngine {
         if (matrix[r][c]) {
           gridDisplay[r][c] = matrix[r][c]; 
         }
+      }
+    }
+
+    // هدر جدول (شماره ستون‌ها از راست به چپ)
+    let tableStr = `<pre> ۱۰  ۹  ۸  ۷  ۶  ۵  ۴  ۳  ۲  ۱\n`;
+    
+    for (let r = 0; r < puzzle.rows; r++) {
+      let rowContent = "";
+      
+      // چیدمان خانه‌ها از چپ به راست (ترتیب صحیح جدول)
+      for (let c = 0; c < puzzle.cols; c++) {
+        const val = gridDisplay[r][c];
+        // یکسان‌سازی طول کاراکترها برای جلوگیری از به هم ریختگی
+        // مربع‌ها دو کاراکتر و حروف فارسی یک کاراکتر فرض می‌شوند
+        if (val === "⬜" || val === "⬛") {
+          rowContent += val + " ";
+        } else {
+          rowContent += " " + val + " ";
+        }
+      }
+      
+      // شماره ردیف در انتهای خط (سمت راست) قرار می‌گیرد تا کل جدول راست‌چین شود
+      const rowNum = (r + 1 < 10 ? "  " + toPersianDigits(r + 1) : toPersianDigits(r + 1));
+      tableStr += `${rowContent} ${rowNum}\n`;
+    }
+    tableStr += `</pre>\n`;
+    return tableStr;
+      }
       }
     }
 
