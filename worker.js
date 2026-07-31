@@ -119,7 +119,7 @@ class TelegramAPI {
 }
 
 // ==========================================
-// ۳. موتور ساخت و رندر جدول
+// ۳. موتور ساخت و رندر جدول (اصلاح تمیزی ساختار و تراز)
 // ==========================================
 class PuzzleEngine {
   static generate() {
@@ -220,16 +220,18 @@ class PuzzleEngine {
     for (let r = 0; r < puzzle.rows; r++) {
       for (let c = 0; c < puzzle.cols; c++) {
         if (matrix[r][c]) {
-          gridDisplay[r][c] = matrix[r][c] + " "; 
+          // استفاده از حروف با فاصله دقیق جهت جلوگیری از بهم ریختگی فونت
+          gridDisplay[r][c] = matrix[r][c] + ""; 
         }
       }
     }
 
     let tableStr = `<pre>`;
-    tableStr += [...NUM_EMOJIS].reverse().join("") + "\n";
+    tableStr += "  ۱۰ ۹ ۸  ۷  ۶  ۵ ۴  ۳ ۲  ۱\n";
     for (let r = 0; r < puzzle.rows; r++) {
+      const rowNum = (r + 1 < 10 ? " " + toPersianDigits(r + 1) : toPersianDigits(r + 1));
       const rowContent = gridDisplay[r].map(cell => cell.length === 1 ? cell + " " : cell).join("");
-      tableStr += rowContent + NUM_EMOJIS[r] + "\n";
+      tableStr += `${rowNum} ${rowContent}\n`;
     }
     tableStr += `</pre>\n`;
     return tableStr;
@@ -559,6 +561,7 @@ async function handleCallback(cb, telegram, kv, ctx) {
     return;
   }
 
+  // اصلاح مطابقت کامل کلمات با راهنمای سوالات سطر/ستون
   if (data.startsWith("nav_across_") || data.startsWith("nav_down_")) {
     const isAcross = data.startsWith("nav_across_");
     const index = parseInt(data.split("_")[2]);
@@ -566,7 +569,7 @@ async function handleCallback(cb, telegram, kv, ctx) {
     const unsolvedWords = words.filter(w => !state.solvedWordIds.includes(w.id));
 
     if (unsolvedWords.length > 0) {
-      await selectQuestion(unsolvedWords[0], userId, userName, chatId, state, puzzle, telegram, kv, cb.id);
+      await selectQuestion(unsolvedWords[0], words, userId, userName, chatId, state, puzzle, telegram, kv, cb.id);
     }
     return;
   }
@@ -601,7 +604,8 @@ async function handleCallback(cb, telegram, kv, ctx) {
       await telegram.editMessageText(chatId, state.messageId, tableText + qText, buildMainKeyboard(puzzle, state.solvedWordIds));
       await telegram.answerCallbackQuery(cb.id, `✅ ۱ حرف فاش شد! (-۱ سکه)`, true);
 
-      await selectQuestion(word, userId, userName, chatId, state, puzzle, telegram, kv, null);
+      const lineWords = puzzle.words.filter(w => w.type === word.type && w.index === word.index);
+      await selectQuestion(word, lineWords, userId, userName, chatId, state, puzzle, telegram, kv, null);
     } else {
       await telegram.answerCallbackQuery(cb.id, "تمام حروف این کلمه قبلاً باز شده‌اند!", true);
     }
@@ -645,7 +649,7 @@ async function handleCallback(cb, telegram, kv, ctx) {
   }
 }
 
-async function selectQuestion(word, userId, userName, chatId, state, puzzle, telegram, kv, cbId) {
+async function selectQuestion(word, lineWords, userId, userName, chatId, state, puzzle, telegram, kv, cbId) {
   state.activeQuestion[userId] = word.id;
   const user = await getUserData(kv, userId, userName);
 
@@ -657,11 +661,13 @@ async function selectQuestion(word, userId, userName, chatId, state, puzzle, tel
   
   const labelText = word.type === "across" ? `${toPersianDigits(word.index)} افقی` : `${toPersianDigits(word.index)} عمودی`;
   const pattern = PuzzleEngine.getRevealedPattern(word, puzzle, state.solvedWordIds, state.revealedCells);
+  const fullClues = lineWords.map(w => w.clue).join(" - ");
 
   const promptMsg = await telegram.sendMessage(
     chatId, 
     `✍️ پاسخ <b>${labelText}</b>:\n` +
-    `❓ <b>سوال:</b> ${word.clue}\n` +
+    `❓ <b>راهنمای سطر/ستون:</b> ${fullClues}\n` +
+    `📌 <b>سوال فعلی:</b> ${word.clue}\n` +
     `📏 <b>تعداد حروف:</b> ${toPersianDigits(word.length)} حرفی\n` +
     `💡 <b>حروف درآمده:</b> ${pattern}\n` +
     `💰 <b>موجودی سکه شما:</b> ${toPersianDigits(user.credits)} سکه`,
