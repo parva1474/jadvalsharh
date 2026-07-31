@@ -1,6 +1,9 @@
 // ==========================================
-// ۱. دیتابیس گسترده کلمات و اطلاعات عمومی (۱۰۰+ کلمه)
+// تنظیمات کانال و دیتابیس کلمات
 // ==========================================
+const CHANNEL_USERNAME = "@parvapoem";
+const CHANNEL_LINK = "https://t.me/parvapoem";
+
 const WORD_DB = {
   2: [
     { word: "رم", clue: "پایتخت ایتالیا" },
@@ -18,10 +21,7 @@ const WORD_DB = {
     { word: "فن", clue: "هنر و مهارت" },
     { word: "تب", clue: "نشانه بیماری و داغی بدن" },
     { word: "رز", clue: "گل سرخ" },
-    { word: "یم", clue: "دریا و اقیانوس" },
-    { word: "سم", clue: "ماده کشنده" },
-    { word: "لو", clue: "نشان و علامت" },
-    { word: "هم", clue: "یکسان و برابر" }
+    { word: "یم", clue: "دریا و اقیانوس" }
   ],
   3: [
     { word: "ارم", clue: "بهشت موعود" },
@@ -54,12 +54,7 @@ const WORD_DB = {
     { word: "دهلی", clue: "شهر معروف هند" },
     { word: "ماسوله", clue: "روستای پلکانی گیلان" },
     { word: "رودکی", clue: "پدر شعر فارسی" },
-    { word: "عطار", clue: "شاعر منطق‌الطیر" },
-    { word: "جامی", clue: "شاعر هفت اورنگ" },
-    { word: "بیژن", clue: "معشوق منیژه در شاهنامه" },
-    { word: "کوهنورد", clue: "صعودکننده به قمه" },
-    { word: "سیروان", clue: "رودی در اورامانات" },
-    { word: "زاج", clue: "نمک بلوری تلخ‌مزه" }
+    { word: "عطار", clue: "شاعر منطق‌الطیر" }
   ],
   4: [
     { word: "زاگرس", clue: "رشته‌کوه غربی" },
@@ -76,15 +71,7 @@ const WORD_DB = {
     { word: "امازون", clue: "جنگل پرباران برزیل" },
     { word: "اورست", clue: "بلندترین قله جهان" },
     { word: "کوهسار", clue: "منطقه کوهستانی" },
-    { word: "بیستون", clue: "کتیبه معروف کرمانشاه" },
-    { word: "تخت‌جمشید", clue: "بنای تاریخی شیراز" },
-    { word: "پاسارگاد", clue: "آرامگاه کوروش" },
-    { word: "امیرکبیر", clue: "صدر اعظم باذکاوت قاجار" },
-    { word: "ارشمیدس", clue: "دانشمند یونانی کشف کشف چگالی" },
-    { word: "فیثاغورس", clue: "دانشمند ریاضی دان" },
-    { word: "نیوتون", clue: "کاشف جاذبه زمین" },
-    { word: "ادیسون", clue: "کاشف برق و لامپ" },
-    { word: "گالیله", clue: "مبتکر تلسکوپ نجومی" }
+    { word: "بیستون", clue: "کتیبه معروف کرمانشاه" }
   ]
 };
 
@@ -93,12 +80,7 @@ const NUM_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️
 function getRandomWord(len, usedWords = new Set()) {
   const pool = WORD_DB[len] || WORD_DB[3];
   const available = pool.filter(item => !usedWords.has(item.word));
-  
-  if (available.length === 0) {
-    // اگر کلمات غیرتکراری آن طول تمام شد، یک کلمه شانس تصادفی بردار
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
-  
+  if (available.length === 0) return pool[Math.floor(Math.random() * pool.length)];
   const selected = available[Math.floor(Math.random() * available.length)];
   usedWords.add(selected.word);
   return selected;
@@ -115,10 +97,24 @@ class TelegramAPI {
     this.baseUrl = `https://api.telegram.org/bot${token}`;
   }
 
+  async checkChannelMember(userId) {
+    try {
+      const res = await fetch(`${this.baseUrl}/getChatMember`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: CHANNEL_USERNAME, user_id: userId })
+      });
+      const data = await res.json();
+      if (data.ok && ["creator", "administrator", "member"].includes(data.result.status)) {
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
   async sendMessage(chatId, text, replyMarkup = null) {
     const payload = { chat_id: chatId, text: text, parse_mode: "HTML" };
     if (replyMarkup) payload.reply_markup = replyMarkup;
-
     const res = await fetch(`${this.baseUrl}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -130,7 +126,6 @@ class TelegramAPI {
   async editMessageText(chatId, messageId, text, replyMarkup = null) {
     const payload = { chat_id: chatId, message_id: messageId, text: text, parse_mode: "HTML" };
     if (replyMarkup) payload.reply_markup = replyMarkup;
-
     const res = await fetch(`${this.baseUrl}/editMessageText`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -157,14 +152,12 @@ class TelegramAPI {
 }
 
 // ==========================================
-// ۲. ساخت پویا و هندسه بی‌نهایت جدول
+// موتور ساخت و مدیریت جدول
 // ==========================================
 class PuzzleEngine {
   static generate() {
     const rows = 10;
     const cols = 10;
-    
-    // انتخاب تصادفی الگوی خانه‌های مشکی در هر بار اجرای new
     const blockPatterns = [
       [[0,4], [0,5], [1,2], [1,7], [2,8], [3,3], [6,6], [7,1], [8,2], [8,7], [9,4], [9,5]],
       [[0,2], [0,7], [2,4], [2,5], [3,1], [3,8], [6,1], [6,8], [7,4], [7,5], [9,2], [9,7]],
@@ -179,11 +172,9 @@ class PuzzleEngine {
     let wordIdCounter = 1;
     const usedWords = new Set();
 
-    // استخراج بخش‌های سفید افقی
     for (let r = 0; r < rows; r++) {
       let currentLen = 0;
       let startCol = 0;
-
       for (let c = 0; c <= cols; c++) {
         if (c < cols && !grid[r][c]) {
           if (currentLen === 0) startCol = c;
@@ -207,11 +198,9 @@ class PuzzleEngine {
       }
     }
 
-    // استخراج بخش‌های سفید عمودی
     for (let c = 0; c < cols; c++) {
       let currentLen = 0;
       let startRow = 0;
-
       for (let r = 0; r <= rows; r++) {
         if (r < rows && !grid[r][c]) {
           if (currentLen === 0) startRow = r;
@@ -237,7 +226,7 @@ class PuzzleEngine {
 
     return {
       id: "puzzle_" + Date.now(),
-      title: `جدول ۱۰×۱۰ کلاسیک (کد ${Math.floor(Math.random()*9000 + 1000)})`,
+      title: `جدول ۱۰×۱۰ کلاسیک`,
       rows: rows,
       cols: cols,
       blocks: blocks,
@@ -245,12 +234,8 @@ class PuzzleEngine {
     };
   }
 
-  static renderTable(puzzle, solvedWordIds = []) {
-    let grid = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill("⬜"));
-
-    puzzle.blocks.forEach(([r, c]) => { grid[r][c] = "⬛"; });
-
-    // جای‌گذاری حروف به‌صورت تک‌به‌تک همراه با فاصله مجزا
+  static getGridMatrix(puzzle, solvedWordIds) {
+    let grid = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill(null));
     puzzle.words.forEach((w) => {
       if (solvedWordIds.includes(w.id)) {
         const chars = w.answer.split("");
@@ -259,22 +244,57 @@ class PuzzleEngine {
           let c = w.col;
           if (w.type === "across") c += idx;
           else r += idx;
-
           if (r < puzzle.rows && c < puzzle.cols) {
-            grid[r][c] = char + " "; 
+            grid[r][c] = char;
           }
         });
       }
     });
+    return grid;
+  }
+
+  static renderTable(puzzle, solvedWordIds = []) {
+    let gridDisplay = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill("⬜"));
+    puzzle.blocks.forEach(([r, c]) => { gridDisplay[r][c] = "⬛"; });
+
+    const matrix = this.getGridMatrix(puzzle, solvedWordIds);
+    for (let r = 0; r < puzzle.rows; r++) {
+      for (let c = 0; c < puzzle.cols; c++) {
+        if (matrix[r][c]) {
+          gridDisplay[r][c] = matrix[r][c] + " ";
+        }
+      }
+    }
 
     let tableStr = `🧩 <b>${puzzle.title}</b>\n\n`;
     tableStr += [...NUM_EMOJIS].reverse().join("") + "▫️\n";
 
     for (let r = 0; r < puzzle.rows; r++) {
-      const rowCells = grid[r].join("");
+      const rowCells = gridDisplay[r].join("");
       tableStr += rowCells + NUM_EMOJIS[r] + "\n";
     }
     return tableStr + "\n";
+  }
+
+  static getRevealedPattern(word, puzzle, solvedWordIds) {
+    const matrix = this.getGridMatrix(puzzle, solvedWordIds);
+    let result = [];
+    const chars = word.answer.split("");
+
+    chars.forEach((char, idx) => {
+      let r = word.row;
+      let c = word.col;
+      if (word.type === "across") c += idx;
+      else r += idx;
+
+      if (matrix[r] && matrix[r][c]) {
+        result.push(matrix[r][c]);
+      } else {
+        result.push("➖");
+      }
+    });
+
+    return result.join(" ");
   }
 
   static renderQuestions(puzzle) {
@@ -306,9 +326,15 @@ class PuzzleEngine {
   }
 }
 
-// ==========================================
-// ۳. ساخت کیبورد عددی ۱ تا ۱۰
-// ==========================================
+function getJoinKeyboard() {
+  return {
+    inline_keyboard: [
+      [{ text: "📢 عضویت در کانال", url: CHANNEL_LINK }],
+      [{ text: "✅ عضو شدم (تایید)", callback_data: "check_membership" }]
+    ]
+  };
+}
+
 function buildMainKeyboard(puzzle, solvedWordIds) {
   const keyboard = [];
 
@@ -353,7 +379,7 @@ function buildSubQuestionKeyboard(words, solvedWordIds) {
 }
 
 // ==========================================
-// ۴. مدیریت پیام‌ها
+// مدیریت پیام‌ها و اجرا
 // ==========================================
 export default {
   async fetch(request, env, ctx) {
@@ -368,9 +394,9 @@ export default {
     try {
       const update = await request.json();
       if (update.callback_query) {
-        await handleCallback(update.callback_query, telegram, kv);
+        await handleCallback(update.callback_query, telegram, kv, ctx);
       } else if (update.message && update.message.text) {
-        await handleMessage(update.message, telegram, kv);
+        await handleMessage(update.message, telegram, kv, ctx);
       }
     } catch (err) {
       console.error(err);
@@ -380,13 +406,34 @@ export default {
   }
 };
 
-async function handleMessage(message, telegram, kv) {
+async function handleMessage(message, telegram, kv, ctx) {
   const chatId = message.chat.id;
   const userId = message.from.id;
   const text = message.text.trim();
 
+  // بررسی عضویت در کانال
+  const isMember = await telegram.checkChannelMember(userId);
+  if (!isMember) {
+    await telegram.sendMessage(
+      chatId,
+      `⚠️ <b>کاربر گرامی!</b>\nبرای استفاده از ربات جدول ابتدا باید عضو کانال زیر شوید:`,
+      getJoinKeyboard()
+    );
+    return;
+  }
+
   if (text.startsWith("/")) {
     const command = text.split(" ")[0].toLowerCase().split("@")[0];
+
+    if (command === "/help") {
+      const helpText = `ℹ️ <b>راهنمای بازی جدول شرح در متن:</b>\n\n` +
+        `۱. با دستور /new یک جدول ۱۰×۱۰ جدید شروع کنید.\n` +
+        `۲. از روی کیبورد زیر جدول، شماره ردیف (افقی) یا ستون (عمودی) مورد نظر خود را انتخاب کنید.\n` +
+        `۳. سوال نمایش داده می‌شود و حروف تقاطع‌ها به شما راهنمایی داده خواهد شد.\n` +
+        `۴. پاسخ خود را تایپ کنید. در صورت درست بودن، کلمه روی جدول ثبت خواهد شد!`;
+      await telegram.sendMessage(chatId, helpText);
+      return;
+    }
 
     if (command === "/start" || command === "/new") {
       const puzzle = PuzzleEngine.generate();
@@ -426,10 +473,8 @@ async function handleMessage(message, telegram, kv) {
   const word = puzzle.words.find((w) => w.id === activeQId);
   if (!word) return;
 
-  // پاک کردن پیام پاسخ کاربر
   await telegram.deleteMessage(chatId, message.message_id);
 
-  // پاک کردن پیام سوال
   if (state.lastPromptMsgId) {
     await telegram.deleteMessage(chatId, state.lastPromptMsgId);
     state.lastPromptMsgId = null;
@@ -449,26 +494,54 @@ async function handleMessage(message, telegram, kv) {
 
     await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
 
+    // پاسخ درست + پاک‌سازی بعد از ۵ ثانیه
     const feedbackMsg = await telegram.sendMessage(chatId, `✅ <b>پاسخ درست بود!</b> (${word.answer})`);
-    setTimeout(() => {
-      telegram.deleteMessage(chatId, feedbackMsg.result.message_id);
-    }, 3000);
+    if (feedbackMsg && feedbackMsg.result) {
+      ctx.waitUntil(
+        new Promise(resolve => setTimeout(resolve, 5000)).then(() => 
+          telegram.deleteMessage(chatId, feedbackMsg.result.message_id)
+        )
+      );
+    }
 
     if (isAllSolved) {
       await telegram.sendMessage(chatId, "🎉 تبریک! تمام سوالات جدول با موفقیت حل شدند!");
     }
   } else {
+    // پاسخ نادرست + پاک‌سازی بعد از ۵ ثانیه
     const wrongMsg = await telegram.sendMessage(chatId, "❌ <b>پاسخ نادرست است!</b> دوباره تلاش کنید.");
-    setTimeout(() => {
-      telegram.deleteMessage(chatId, wrongMsg.result.message_id);
-    }, 3000);
+    if (wrongMsg && wrongMsg.result) {
+      ctx.waitUntil(
+        new Promise(resolve => setTimeout(resolve, 5000)).then(() => 
+          telegram.deleteMessage(chatId, wrongMsg.result.message_id)
+        )
+      );
+    }
   }
 }
 
-async function handleCallback(cb, telegram, kv) {
+async function handleCallback(cb, telegram, kv, ctx) {
   const chatId = cb.message.chat.id;
   const userId = cb.from.id;
   const data = cb.data;
+
+  if (data === "check_membership") {
+    const isMember = await telegram.checkChannelMember(userId);
+    if (isMember) {
+      await telegram.answerCallbackQuery(cb.id, "✅ عضویت شما تایید شد! حالا می‌توانید بازی کنید.", true);
+      await telegram.deleteMessage(chatId, cb.message.message_id);
+    } else {
+      await telegram.answerCallbackQuery(cb.id, "❌ شما هنوز عضو کانال نشده‌اید!", true);
+    }
+    return;
+  }
+
+  // بررسی عضویت در تمامی دکمه‌ها
+  const isMember = await telegram.checkChannelMember(userId);
+  if (!isMember) {
+    await telegram.answerCallbackQuery(cb.id, "⚠️ ابتدا باید عضو کانال شوید!", true);
+    return;
+  }
 
   if (data === "ignore") {
     await telegram.answerCallbackQuery(cb.id);
@@ -496,7 +569,6 @@ async function handleCallback(cb, telegram, kv) {
     const isAcross = data.startsWith("nav_across_");
     const index = parseInt(data.split("_")[2]);
     const words = puzzle.words.filter(w => (isAcross ? w.type === "across" : w.type === "down") && w.index === index);
-
     const unsolvedWords = words.filter(w => !state.solvedWordIds.includes(w.id));
 
     if (unsolvedWords.length === 1) {
@@ -513,35 +585,4 @@ async function handleCallback(cb, telegram, kv) {
 
   if (data.startsWith("q_")) {
     const qId = data.replace("q_", "");
-    const word = puzzle.words.find(w => w.id === qId);
-    await selectQuestion(word, userId, chatId, state, puzzle, telegram, kv, cb.id);
-  }
-}
-
-async function selectQuestion(word, userId, chatId, state, puzzle, telegram, kv, cbId) {
-  state.activeQuestion[userId] = word.id;
-
-  if (state.lastPromptMsgId) {
-    await telegram.deleteMessage(chatId, state.lastPromptMsgId);
-  }
-
-  await telegram.answerCallbackQuery(cbId, `سوال انتخاب شد.`);
-  
-  const labelText = word.type === "across" ? `${toPersianDigits(word.index)} افقی` : `${toPersianDigits(word.index)} عمودی`;
-
-  const promptMsg = await telegram.sendMessage(
-    chatId, 
-    `✍️ پاسخ <b>${labelText}</b>:\n❓ <b>سوال:</b> ${word.clue}\n📏 <b>تعداد حروف:</b> ${toPersianDigits(word.length)} حرفی`
-  );
-
-  if (promptMsg && promptMsg.result) {
-    state.lastPromptMsgId = promptMsg.result.message_id;
-  }
-
-  const keyboard = buildMainKeyboard(puzzle, state.solvedWordIds);
-  const tableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds);
-  const qText = PuzzleEngine.renderQuestions(puzzle);
-  await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
-
-  await kv.put(`state:${chatId}`, JSON.stringify(state));
-              }
+    const word = puzzle.
