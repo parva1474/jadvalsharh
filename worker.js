@@ -1,12 +1,12 @@
 // ==========================================
-// ۱. دیتابیس جدول‌های کلاسیک (۱۰ در ۱۰)
+// ۱. دیتابیس جدول ۱۰ در ۱۰ کلاسیک
 // ==========================================
 const CLASSIC_PUZZLE = {
   id: "classic_10x10_1",
   title: "جدول کلاسیک شماره ۱",
   rows: 10,
   cols: 10,
-  // خانه‌های مشکی ثابت جدول [row, col] (از ۰ تا ۹)
+  // خانه‌های مشکی
   blocks: [
     [0, 3], [0, 7],
     [1, 5],
@@ -19,20 +19,46 @@ const CLASSIC_PUZZLE = {
     [8, 4],
     [9, 2], [9, 6]
   ],
-  // کلمات افقی و عمودی با محل شروع و طول کلمه
+  // راهنمای خطی (مشابه روزنامه‌ها)
+  clues: {
+    across: [
+      { row: 1, text: "بهشت موعود - شاعر گلستان" },
+      { row: 2, text: "کشور عزیزمان - نام قدیمی شیراز" },
+      { row: 3, text: "پایتخت ایران - بلندترین قله ایران" },
+      { row: 4, text: "شاعر شاهنامه - پهنه آبی جنوب" },
+      { row: 5, text: "پرنده افسانه‌ای - رود مرزی ایران" },
+      { row: 6, text: "فرزند رستم - بنیان‌گذار هخامنشیان" },
+      { row: 7, text: "کاشف الکل - لسان‌الغیب شیرازی" },
+      { row: 8, text: "سرایش‌گر بوستان - نام دریاچه خزر" },
+      { row: 9, text: "از کوه‌های تبریز - پادشاه هخامنشی" },
+      { row: 10, text: "نماد تهران - قهرمان نامدار" }
+    ],
+    down: [
+      { col: 1, text: "فرمانروا - کاشف الکل - طویل‌ترین رود" },
+      { col: 2, text: "شاعر بوستان - پهنه آبی جنوب" },
+      { col: 3, text: "پایتخت ایران - فرزند رستم" },
+      { col: 4, text: "بلندترین قله - پرنده افسانه‌ای" },
+      { col: 5, text: "نام رودی در غرب - شاعر شاهنامه" },
+      { col: 6, text: "بنیان‌گذار هخامنشیان - کاشف الکل" },
+      { col: 7, text: "لسان‌الغیب شیرازی - بهشت موعود" },
+      { col: 8, text: "قهرمان نامدار - نام دریاچه خزر" },
+      { col: 9, text: "از کوه‌های تبریز - پادشاه هخامنشی" },
+      { col: 10, text: "نماد تهران - رود مرزی ایران" }
+    ]
+  },
+  // کلمات جدول جهت بررسی پاسخ‌ها
   words: [
-    // --- افقی (Across) ---
     { id: "H1_1", label: "۱ افقی (اول)", type: "across", row: 0, col: 0, length: 3, answer: "ارم", clue: "بهشت موعود" },
     { id: "H1_2", label: "۱ افقی (دوم)", type: "across", row: 0, col: 4, length: 3, answer: "سعدی", clue: "شاعر گلستان" },
     { id: "H2_1", label: "۲ افقی", type: "across", row: 1, col: 0, length: 5, answer: "ایران", clue: "کشور عزیزمان" },
     { id: "H3_1", label: "۳ افقی", type: "across", row: 2, col: 3, length: 5, answer: "تهران", clue: "پایتخت ایران" },
-    
-    // --- عمودی (Down) ---
-    { id: "V1_1", label: "۱ عمودی", type: "down", row: 0, col: 0, length: 3, answer: "امیر", clue: "فرمانروا و پادشاه" },
+    { id: "V1_1", label: "۱ عمودی", type: "down", row: 0, col: 0, length: 3, answer: "امیر", clue: "فرمانروا" },
     { id: "V2_1", label: "۲ عمودی", type: "down", row: 0, col: 1, length: 5, answer: "رازی", clue: "کاشف الکل" },
     { id: "V5_1", label: "۵ عمودی", type: "down", row: 0, col: 4, length: 5, answer: "سیروان", clue: "نام رودی در غرب ایران" }
   ]
 };
+
+const NUM_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
 
 function toPersianDigits(num) {
   const farsiDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
@@ -81,17 +107,16 @@ class TelegramAPI {
 
 class CrosswordEngine {
   static renderTable(puzzle, solvedWordIds = []) {
-    // ۱. ساخت شبکه‌ اولیه با خانه‌های خالی
     let grid = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill("⬜"));
 
-    // ۲. اعمال خانه‌های مشکی
+    // اعمال خانه‌های مشکی
     puzzle.blocks.forEach(([r, c]) => {
       if (r < puzzle.rows && c < puzzle.cols) {
         grid[r][c] = "⬛";
       }
     });
 
-    // ۳. پر کردن حروف کلمات حل شده (با پشتیبانی از تقاطع‌ها)
+    // پر کردن کلمات حل شده
     puzzle.words.forEach((w) => {
       if (solvedWordIds.includes(w.id)) {
         const chars = w.answer.split("");
@@ -108,31 +133,30 @@ class CrosswordEngine {
       }
     });
 
-    // ۴. ساخت خروجی متنی شبکه جدول
+    // رندر جدول با اعداد شماره ردیف و ستون و بدون فاصله اضافه برای جلوگیری از شکستگی
     let tableStr = `🧩 <b>${puzzle.title}</b>\n\n`;
+    
+    // سطر بالای جدول (شماره ستون‌ها)
+    tableStr += "▫️" + NUM_EMOJIS.slice(0, puzzle.cols).join("") + "\n";
+
     for (let r = 0; r < puzzle.rows; r++) {
-      tableStr += grid[r].join(" ") + "\n";
+      // شماره ردیف در ابتدای هر سطر
+      tableStr += NUM_EMOJIS[r] + grid[r].join("");
+      tableStr += "\n";
     }
     return tableStr + "\n";
   }
 
-  static renderQuestions(puzzle, solvedWordIds = []) {
+  static renderQuestions(puzzle) {
     let qStr = "📝 <b>راهنمای سوالات:</b>\n\n<b>افقی:</b>\n";
-    
-    const acrossWords = puzzle.words.filter(w => w.type === "across");
-    const downWords = puzzle.words.filter(w => w.type === "down");
 
-    acrossWords.forEach((w) => {
-      const isSolved = solvedWordIds.includes(w.id);
-      const status = isSolved ? "✅" : "❓";
-      qStr += `${status} <b>${w.label}:</b> ${w.clue}\n`;
+    puzzle.clues.across.forEach((c) => {
+      qStr += `<b>${toPersianDigits(c.row)}.</b> ${c.text}\n`;
     });
 
     qStr += "\n<b>عمودی:</b>\n";
-    downWords.forEach((w) => {
-      const isSolved = solvedWordIds.includes(w.id);
-      const status = isSolved ? "✅" : "❓";
-      qStr += `${status} <b>${w.label}:</b> ${w.clue}\n`;
+    puzzle.clues.down.forEach((c) => {
+      qStr += `<b>${toPersianDigits(c.col)}.</b> ${c.text}\n`;
     });
 
     return qStr;
@@ -145,7 +169,7 @@ class CrosswordEngine {
 export default {
   async fetch(request, env, ctx) {
     if (request.method !== "POST") {
-      return new Response("OK - Classic Crossword Running", { status: 200 });
+      return new Response("OK - Crossword Bot Running", { status: 200 });
     }
 
     const token = env.TELEGRAM_BOT_TOKEN;
@@ -190,7 +214,7 @@ async function handleMessage(message, telegram, kv) {
       };
 
       const tableText = CrosswordEngine.renderTable(puzzle, []);
-      const qText = CrosswordEngine.renderQuestions(puzzle, []);
+      const qText = CrosswordEngine.renderQuestions(puzzle);
       const keyboard = buildKeyboard(puzzle, []);
 
       const sent = await telegram.sendMessage(chatId, tableText + qText, keyboard);
@@ -226,13 +250,13 @@ async function handleMessage(message, telegram, kv) {
 
     const isAllSolved = state.solvedWordIds.length === puzzle.words.length;
     const tableText = CrosswordEngine.renderTable(puzzle, state.solvedWordIds);
-    const qText = CrosswordEngine.renderQuestions(puzzle, state.solvedWordIds);
+    const qText = CrosswordEngine.renderQuestions(puzzle);
     const keyboard = buildKeyboard(puzzle, state.solvedWordIds);
 
     await telegram.editMessageText(chatId, state.messageId, tableText + qText, keyboard);
 
     if (isAllSolved) {
-      await telegram.sendMessage(chatId, "🎉 آفرین! تمام سوالات جدول با موفقیت حل شد!");
+      await telegram.sendMessage(chatId, "🎉 آفرین! تمام کلمات جدول حل شد!");
     } else {
       await telegram.sendMessage(chatId, `✅ پاسخ ${word.label} درست بود!`);
     }
