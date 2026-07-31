@@ -223,6 +223,7 @@ class PuzzleEngine {
         }
       });
     });
+  }
       static renderTable(puzzle, solvedWordIds = [], revealedCells = {}) {
     let gridDisplay = Array(puzzle.rows).fill(null).map(() => Array(puzzle.cols).fill("⬜"));
     puzzle.blocks.forEach(([r, c]) => { gridDisplay[r][c] = "⬛"; });
