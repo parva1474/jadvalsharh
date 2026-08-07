@@ -163,10 +163,160 @@ export default {
 
     try {
       const update = await request.json();
+      
       if (update.callback_query) {
-        // مدیریت کلیک دکمه‌ها
-      } else if (update.message && update.message.text) {
-        // مدیریت پیام‌های متنی
+        const cq = update.callback_query;
+        const chatId = cq.message.chat.id;
+        const userId = cq.from.id;
+        const data = cq.data;
+
+        if (data === "check_membership") {
+          const isMember = await telegram.checkChannelMember(userId);
+          if (isMember) {
+            await telegram.answerCallbackQuery(cq.id, "عضویت شما تایید شد!", true);
+            await telegram.deleteMessage(chatId, cq.message.message_id);
+            // شروع خودکار بازی پس از تایید عضویت
+            const puzzle = PuzzleEngine.generate();
+            const state = {
+              puzzleId: puzzle.id,
+              solvedWordIds: [],
+              revealedCells: {},
+              activeQuestion: {},
+              lastPromptMsgId: null,
+              messageId: null,
+              players: [userId]
+            };
+            const tableText = PuzzleEngine.renderTable(puzzle, [], {});
+            const qText = PuzzleEngine.renderQuestions(puzzle);
+            const keyboard = buildMainKeyboard(puzzle, []);
+            const sent = await telegram.sendMessage(chatId, tableText + qText, keyboard);
+            if (sent && sent.result) {
+              state.messageId = sent.result.message_id;
+              if (kv) {
+                await kv.put(`puzzle:${chatId}`, JSON.stringify(puzzle));
+                await kv.put(`state:${chatId}`, JSON.stringify(state));
+              }
+            }
+          } else {
+            await telegram.answerCallbackQuery(cq.id, "هنوز در کانال عضو نشده‌اید!", true);
+          }
+        } else if (data.startsWith("nav_across_") || data.startsWith("nav_down_")) {
+          const parts = data.split("_");
+          const type = parts[1]; // across یا down
+          const index = parseInt(parts[2]);
+          
+          if (kv) {
+            const rawPuzzle = await kv.get(`puzzle:${chatId}`);
+            const rawState = await kv.get(`state:${chatId}`);
+            if (rawPuzzle && rawState) {
+              const puzzle = JSON.parse(rawPuzzle);
+              const state = JSON.parse(rawState);
+              const targetWords = puzzle.words.filter(w => w.type === type && w.index === index);
+              
+              if (targetWords.length > 0) {
+                const word = targetWords[0];
+                state.activeQuestion[userId] = word.id;
+                await kv.put(`state:${chatId}`, JSON.stringify(state));
+                
+                const promptText = `👉 کلمه مربوط به راهنمایی زیر را ارسال کنید:\n\n<b>${word.clue}</b> (طول: ${toPersianDigits(word.answer.length)} حرف)`;
+                const sentPrompt = await telegram.sendMessage(chatId, promptText);
+                if (sentPrompt && sentPrompt.result) {
+                  state.lastPromptMsgId = sentPrompt.result.message_id;
+                  await kv.put(`state:${chatId}`, JSON.stringify(state));
+                }
+              }
+            }
+          }
+          await telegram.answerCallbackQuery(cq.id);
+        } else {
+          await telegram.answerCallbackQuery(cq.id);
+        }
+      } 
+      else if (update.message && update.message.text) {
+        const message = update.message;
+        const chatId = message.chat.id;
+        const userId = message.from.id;
+        const userName = message.from.first_name || "بازیکن";
+        const text = message.text.trim();
+
+        const isMember = await telegram.checkChannelMember(userId);
+        if (!isMember) {
+          await telegram.sendMessage(chatId, `⚠️ <b>برای بازی در جدول باید ابتدا عضو کانال شوید:</b>`, getJoinKeyboard());
+          return;
+        }
+
+        if (text.startsWith("/")) {
+          const command = text.split(" ")[0].toLowerCase().split("@")[0];
+
+          if (command === "/start" || command === "/new") {
+            const puzzle = PuzzleEngine.generate();
+            const state = {
+              puzzleId: puzzle.id,
+              solvedWordIds: [],
+              revealedCells: {},
+              activeQuestion: {},
+              lastPromptMsgId: null,
+              messageId: null,
+              players: [userId]
+            };
+
+            const tableText = PuzzleEngine.renderTable(puzzle, [], {});
+            const qText = PuzzleEngine.renderQuestions(puzzle);
+            const keyboard = buildMainKeyboard(puzzle, []);
+
+            const sent = await telegram.sendMessage(chatId, tableText + qText, keyboard);
+            if (sent && sent.result) {
+              state.messageId = sent.result.message_id;
+              if (kv) {
+                await kv.put(`puzzle:${chatId}`, JSON.stringify(puzzle));
+                await kv.put(`state:${chatId}`, JSON.stringify(state));
+              }
+            }
+            return;
+          }
+        }
+
+        if (!kv) return;
+        const rawState = await kv.get(`state:${chatId}`);
+        if (!rawState) return;
+        const state = JSON.parse(rawState);
+
+        const activeQId = state.activeQuestion[userId];
+        if (!activeQId) return;
+
+        const rawPuzzle = await kv.get(`puzzle:${chatId}`);
+        if (!rawPuzzle) return;
+        const puzzle = JSON.parse(rawPuzzle);
+
+        const word = puzzle.words.find(w => w.id === activeQId);
+        if (!word) return;
+
+        await telegram.deleteMessage(chatId, message.message_id);
+
+        if (text.replace(/\s+/g, "") === word.answer) {
+          if (!state.solvedWordIds.includes(word.id)) {
+            state.solvedWordIds.push(word.id);
+            const points = word.answer.length;
+            await updateUserScoreAndCredits(kv, userId, userName, 0, points);
+            if (!state.players.includes(userId)) state.players.push(userId);
+          }
+
+          delete state.activeQuestion[userId];
+
+          if (state.lastPromptMsgId) {
+            await telegram.deleteMessage(chatId, state.lastPromptMsgId);
+            state.lastPromptMsgId = null;
+          }
+
+          const newTableText = PuzzleEngine.renderTable(puzzle, state.solvedWordIds, state.revealedCells);
+          const qText = PuzzleEngine.renderQuestions(puzzle);
+          const newKeyboard = buildMainKeyboard(puzzle, state.solvedWordIds);
+
+          if (state.messageId) {
+            await telegram.editMessageText(chatId, state.messageId, newTableText + qText, newKeyboard);
+          }
+          await kv.put(`state:${chatId}`, JSON.stringify(state));
+        }
       }
     } catch (err) {
       console.error(err);
