@@ -163,6 +163,19 @@ export default {
 
     try {
       const update = await request.json();
+
+      const updateId = update.update_id;
+
+if (kv && updateId !== undefined) {
+  const processedKey = `processed_update:${updateId}`;
+  const alreadyProcessed = await kv.get(processedKey);
+
+  if (alreadyProcessed) {
+    return new Response("OK", { status: 200 });
+  }
+
+  await kv.put(processedKey, "1", { expirationTtl: 86400 });
+}
       
       if (update.callback_query) {
         const cq = update.callback_query;
